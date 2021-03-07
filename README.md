@@ -1,0 +1,2 @@
+# MultiHeadJointEntityRelationExtraction_simple
+没有使用BERT的MultiHeadJointEntityRelationExtraction
