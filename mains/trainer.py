@@ -182,7 +182,7 @@ class Trainer:
         for item in pred_rel_list:
             subject, object, rel = [], [], []
             s_start, o_start = item[0], item[1]
-            if token_pred[s_start][0] != 'B' or token_pred[o_start][0] != 'B':
+            if token_pred[s_start][0] != 'B' or token_pred[o_start][0] != 'B' or s_start > len(text) or o_start > len(text):
                 continue
             subject.append(text[s_start])
             object.append(text[o_start])

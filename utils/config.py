@@ -58,6 +58,7 @@ class Config:
         self.dropout_head = 0.9
         self.dropout_ner = 0.8
         self.use_dropout = True
+        self.threshold_rel = 0.7
     
     def get_token_types(self):
         token_type_bio = []

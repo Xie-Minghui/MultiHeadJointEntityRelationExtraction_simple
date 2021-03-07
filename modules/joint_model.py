@@ -159,6 +159,7 @@ class JointModel(nn.Module):
             # 交叉熵计算不适用 rel_score_prob， 应该是rel_score_matrix
             loss_rel = F.cross_entropy(rel_score_prob.permute(0, 3, 1, 2), data_item['pred_rel_matrix'], self.weights_rel)  # 要把分类放在第二维度
         
+        rel_score_prob = rel_score_prob - (self.config.threshold_rel - 0.5)  # 超过了一定阈值之后才能判断关系
         pred_rel = torch.round(rel_score_prob).to(torch.int64)
         # print("hello2")
         if is_test:
