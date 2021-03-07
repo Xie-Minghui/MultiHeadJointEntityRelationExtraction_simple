@@ -1,2 +1,2 @@
-# MultiHeadJointEntityRelationExtraction_simple
-没有使用BERT的MultiHeadJointEntityRelationExtraction
+# MultiHeadJointEntityRelationExtraction
+实体关系抽取联合模型
