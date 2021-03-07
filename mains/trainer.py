@@ -182,10 +182,16 @@ class Trainer:
         for item in pred_rel_list:
             subject, object, rel = [], [], []
             s_start, o_start = item[0], item[1]
-            while s_start < len(text) and (token_pred[s_start][0] == 'I' or token_pred[s_start][0] == 'B'):
+            if token_pred[s_start][0] != 'B' or token_pred[o_start][0] != 'B':
+                continue
+            subject.append(text[s_start])
+            object.append(text[o_start])
+            s_start += 1
+            o_start += 1
+            while s_start < len(text) and (token_pred[s_start][0] == 'I' ): # or token_pred[s_start][0] == 'B'
                 subject.append(text[s_start])
                 s_start += 1
-            while o_start < len(text) and (token_pred[o_start][0] == 'I' or token_pred[o_start][0] == 'B'):
+            while o_start < len(text) and (token_pred[o_start][0] == 'I'): #  or token_pred[o_start][0] == 'B'
                 object.append(text[o_start])
                 o_start += 1
             subject_all.append(''.join(subject))
