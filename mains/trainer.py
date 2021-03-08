@@ -72,31 +72,18 @@ class Trainer:
             print("Epoch: {}".format(epoch))
             # print(len(self.train_dataset))
             pbar = tqdm(enumerate(self.train_dataset), total=len(self.train_dataset))
-            loss_total, loss_ner_total, loss_rel_total, f1_ner_total= 0, 0, 0, 0
+            loss_total, loss_ner_total, loss_rel_total, f1_ner_total = 0, 0, 0, 0
             # first = True
             # print("haha1")
             for i, data_item in pbar:
                 # print("haha2")
                 loss_ner, loss_rel, pred_ner, pred_rel, f1_ner = self.train_batch(data_item)
-                # print("haha3")
+
                 loss_total += (loss_ner + loss_rel)
                 loss_ner_total += loss_ner
                 loss_rel_total += loss_rel
                 f1_ner_total += f1_ner
-                # if epoch % 5 == 0 and first:
-                #     tmp_rel = pred_rel.numpy()
-                #     # tmp_ner = pred_ner.numpy()
-                #     cnt = 0
-                #     for i in range(tmp_rel.shape[0]):
-                #         for j in range(tmp_rel.shape[1]):
-                #             for k in range(tmp_rel.shape[2]):
-                #                 if tmp_rel[i,j,k,0] - 1.0 < 0.01 or 1.0 - tmp_rel[i,j,k,0] < 0.01:
-                #                     cnt += 1
-                #     print("共有{}个关系不是0".format(cnt))
-                #
-                #     np.savetxt("pred_rel.txt", tmp_rel.reshape(pred_rel.shape[0], -1))
-                    # np.savetxt("pred_ner.txt", tmp_ner.reshape(pred_rel.shape[0], -1))
-                    # first = False
+                
             if (epoch+1) % 1 == 0:
                 self.predict_sample()
             print("train ner loss: {0}, rel loss: {1}, f1 score".format(loss_ner_total/self.num_sample_total, loss_rel_total/self.num_sample_total,
@@ -115,7 +102,7 @@ class Trainer:
         # self.optimizer.step()
         # print("haha5")
         loss_ner, loss_rel, pred_ner, pred_rel = self.model(data_item)
-        pred_token_type = self.resotre_ner((pred_ner))
+        pred_token_type = self.restore_ner(pred_ner, data_item['mask_tokens'])
         f1_ner = f1_score(data_item['token_type_origin'], pred_token_type)
         loss = (loss_ner + loss_rel*100)
         # print("hello3")
@@ -125,11 +112,13 @@ class Trainer:
         
         return loss_ner, loss_rel, pred_ner, pred_rel, f1_ner
     
-    def resotre_ner(self, pred_ner):
+    def restore_ner(self, pred_ner, mask_tokens):
         pred_token_type = []
         for i in range(len(pred_ner)):
             list_tmp = []
             for j in range(len(pred_ner[0])):
+                if mask_tokens[i, j] == 0:
+                    break
                 list_tmp.append(self.id2token_type[pred_ner[i][j]])
             pred_token_type.append(list_tmp)
             
@@ -225,7 +214,7 @@ if __name__ == '__main__':
     model = JointModel(config)
     data_processor = ModelDataPreparation(config)
     train_loader, dev_loader, test_loader = data_processor.get_train_dev_data(
-        '../data/train_data_small.json',
+        '../data/train_small.json',
     '../data/dev_small.json',
     '../data/predict.json')
     # train_loader, dev_loader, test_loader = data_processor.get_train_dev_data('../data/train_data_small.json')

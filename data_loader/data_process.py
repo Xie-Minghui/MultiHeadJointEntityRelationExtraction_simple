@@ -213,6 +213,7 @@ class Dataset(torch.utils.data.Dataset):
 
         data_info['text'] = self.data[index]['text']
         data_info['spo_list'] = self.data[index]['spo_list']
+        data_info['token_type_origin'] = self.data[index]['token_type_origin']
         return data_info
     
     def __len__(self):
@@ -312,6 +313,7 @@ class Dataset(torch.utils.data.Dataset):
         data_info = {'pred_rel_matrix': pred_rel_matrix, "mask_tokens": mask_tokens.to(torch.uint8)}
         data_info['text'] = item_info['text']
         data_info['spo_list'] = item_info['spo_list']
+        data_info['token_type_origin'] = item_info['token_type_origin']
         for key in item_info.keys():
             # try:
             #     data_info[key] = locals()[key]
