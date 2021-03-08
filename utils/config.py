@@ -53,7 +53,7 @@ class Config:
         self.num_sample = 204800
 
         self.dropout_embedding = 0.1
-        self.dropout_lstm = 0.9
+        self.dropout_lstm = 0.2
         self.dropout_lstm_output = 0.9
         self.dropout_head = 0.9
         self.dropout_ner = 0.8
