@@ -86,8 +86,8 @@ class Trainer:
                 
             if (epoch+1) % 1 == 0:
                 self.predict_sample()
-            print("train ner loss: {0}, rel loss: {1}, f1 score".format(loss_ner_total/self.num_sample_total, loss_rel_total/self.num_sample_total,
-                                                                        f1_ner_total/self.num_sample_total))
+            print("train ner loss: {0}, rel loss: {1}, f1 score: {2}".format(loss_ner_total/self.num_sample_total, loss_rel_total/self.num_sample_total,
+                                                                        f1_ner_total/self.num_sample_total*self.config.batch_size))
             # pbar.set_description('TRAIN LOSS: {}'.format(loss_total/self.num_sample_total))
             if (epoch+1) % 1 == 0:
                 self.evaluate()

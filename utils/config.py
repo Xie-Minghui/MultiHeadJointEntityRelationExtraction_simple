@@ -26,7 +26,7 @@ class Config:
                  hidden_dim_lstm=128,
                  num_layers=3,
                  batch_size=32,
-                 layer_size=128,
+                 layer_size=256,
                  num_token_type=64,
                  token_type_dim=12
                  ):
@@ -53,7 +53,7 @@ class Config:
         self.num_sample = 204800
 
         self.dropout_embedding = 0.1
-        self.dropout_lstm = 0.2
+        self.dropout_lstm = 0.1
         self.dropout_lstm_output = 0.9
         self.dropout_head = 0.9
         self.dropout_ner = 0.8

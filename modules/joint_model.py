@@ -123,8 +123,8 @@ class JointModel(nn.Module):
         output_lstm, h_n =self.gru(embeddings, hidden_init)
         # output_lstm [batch, seq_len, 2*hidden_dim]  h_n [2*num_layers, batch, hidden_dim]
         # print("hello7")
-        if self.config.use_dropout:
-            output_lstm = self.dropout_lstm_layer(output_lstm)
+        # if self.config.use_dropout:
+        #     output_lstm = self.dropout_lstm_layer(output_lstm)  # 用了效果变差
         ner_score = self.get_ner_score(output_lstm)
         # print("hello0")
         # 下面是使用CFR
