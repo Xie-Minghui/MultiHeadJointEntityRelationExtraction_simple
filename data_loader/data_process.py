@@ -134,13 +134,14 @@ class ModelDataPreparation:
                     spo_list = []
                 text = data_item['text']
                 text_tokened = [c.lower() for c in text]  # 中文使用简单的分词
-                token_type_list, predict_rel_list, predict_location_list = None, None, None
+                token_type_list, predict_rel_list, predict_location_list, token_type_origin = None, None, None, None
                 
                 text_tokened = self.get_rid_unkonwn_word(text_tokened)
                 if not is_test:
                     token_type_list, predict_rel_list, predict_location_list, have_error = self.subject_object_labeling(
                         spo_list=spo_list, text_tokened=text_tokened
                     )
+                    token_type_origin = token_type_list  # 保存没有数值化前的token_type
                     if have_error:
                         continue
                 item = {'text_tokened': text_tokened, 'token_type_list': token_type_list,
@@ -162,6 +163,7 @@ class ModelDataPreparation:
                 #                                                                  )
                 item['text'] = ''.join(text_tokened)  # 保存消除异常词汇的文本
                 item['spo_list'] = data_item['spo_list']
+                item['token_type_origin'] = token_type_origin
                 data.append(item)
                 # data.append(data_item['text'])
                 # data.append(data_item['spo_list'])

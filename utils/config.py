@@ -52,7 +52,7 @@ class Config:
         self.max_seq_length = 256
         self.num_sample = 204800
 
-        self.dropout_embedding = 0.2
+        self.dropout_embedding = 0.1
         self.dropout_lstm = 0.9
         self.dropout_lstm_output = 0.9
         self.dropout_head = 0.9
@@ -69,8 +69,4 @@ class Config:
         token_type_bio.append('O')
         
         return token_type_bio
-        
-    
-        
-        
-        
+

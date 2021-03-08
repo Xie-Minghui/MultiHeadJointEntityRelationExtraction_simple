@@ -19,6 +19,12 @@ from utils.config import Config, USE_CUDA
 from modules.joint_model import JointModel
 from data_loader.data_process import ModelDataPreparation
 import math
+
+from seqeval.metrics import f1_score
+from seqeval.metrics import precision_score
+from seqeval.metrics import accuracy_score
+from seqeval.metrics import recall_score
+from seqeval.metrics import classification_report
 import numpy as np
 # if torch.cuda.is_available():
 #     USE_CUDA = True
@@ -66,16 +72,17 @@ class Trainer:
             print("Epoch: {}".format(epoch))
             # print(len(self.train_dataset))
             pbar = tqdm(enumerate(self.train_dataset), total=len(self.train_dataset))
-            loss_total, loss_ner_total, loss_rel_total = 0, 0, 0
+            loss_total, loss_ner_total, loss_rel_total, f1_ner_total= 0, 0, 0, 0
             # first = True
             # print("haha1")
             for i, data_item in pbar:
                 # print("haha2")
-                loss_ner, loss_rel, pred_ner, pred_rel = self.train_batch(data_item)
+                loss_ner, loss_rel, pred_ner, pred_rel, f1_ner = self.train_batch(data_item)
                 # print("haha3")
                 loss_total += (loss_ner + loss_rel)
                 loss_ner_total += loss_ner
                 loss_rel_total += loss_rel
+                f1_ner_total += f1_ner
                 # if epoch % 5 == 0 and first:
                 #     tmp_rel = pred_rel.numpy()
                 #     # tmp_ner = pred_ner.numpy()
@@ -92,11 +99,12 @@ class Trainer:
                     # first = False
             if (epoch+1) % 1 == 0:
                 self.predict_sample()
-            print("train ner loss: {0}, rel loss: {1}".format(loss_ner_total/self.num_sample_total, loss_rel_total/self.num_sample_total))
+            print("train ner loss: {0}, rel loss: {1}, f1 score".format(loss_ner_total/self.num_sample_total, loss_rel_total/self.num_sample_total,
+                                                                        f1_ner_total/self.num_sample_total))
             # pbar.set_description('TRAIN LOSS: {}'.format(loss_total/self.num_sample_total))
             if (epoch+1) % 1 == 0:
                 self.evaluate()
-            
+        
     
     def train_batch(self, data_item):
         # print("haha4")
@@ -107,14 +115,25 @@ class Trainer:
         # self.optimizer.step()
         # print("haha5")
         loss_ner, loss_rel, pred_ner, pred_rel = self.model(data_item)
-        
+        pred_token_type = self.resotre_ner((pred_ner))
+        f1_ner = f1_score(data_item['token_type_origin'], pred_token_type)
         loss = (loss_ner + loss_rel*100)
         # print("hello3")
         loss.backward()
         # print("hello4")
         self.optimizer.step()
         
-        return loss_ner, loss_rel, pred_ner, pred_rel
+        return loss_ner, loss_rel, pred_ner, pred_rel, f1_ner
+    
+    def resotre_ner(self, pred_ner):
+        pred_token_type = []
+        for i in range(len(pred_ner)):
+            list_tmp = []
+            for j in range(len(pred_ner[0])):
+                list_tmp.append(self.id2token_type[pred_ner[i][j]])
+            pred_token_type.append(list_tmp)
+            
+        return pred_token_type
     
     def evaluate(self):
         print('STARTING EVALUATION...')
