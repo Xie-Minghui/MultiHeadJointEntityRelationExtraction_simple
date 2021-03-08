@@ -26,9 +26,8 @@ class Config:
                  hidden_dim_lstm=128,
                  num_layers=3,
                  batch_size=32,
-                 layer_size=256,
-                 num_token_type=64,
-                 token_type_dim=12
+                 layer_size=128,
+                 token_type_dim=8
                  ):
         self.lr = lr
         self.epochs = epochs
@@ -52,14 +51,15 @@ class Config:
         self.max_seq_length = 256
         self.num_sample = 204800
 
-        self.dropout_embedding = 0.1
+        self.dropout_embedding = 0.1  # 从0.2到0.1
         self.dropout_lstm = 0.1
         self.dropout_lstm_output = 0.9
-        self.dropout_head = 0.9
+        self.dropout_head = 0.9  # 只更改这个参数 0.9到0.5
         self.dropout_ner = 0.8
         self.use_dropout = True
-        self.threshold_rel = 0.7
+        self.threshold_rel = 0.95  # 从0.7到0.95
         self.teach_rate = 0.2
+        self.checkpoint_path = '../models/'
     
     def get_token_types(self):
         token_type_bio = []

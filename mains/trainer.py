@@ -50,7 +50,7 @@ class Trainer:
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=config.lr)
         # 学习率调控
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, factor=0.5,
-                                                                   patience=3, min_lr=1e-6, verbose=True)
+                                                                   patience=8, min_lr=1e-5, verbose=True)
         if USE_CUDA:
             self.model = self.model.cuda()
             
@@ -68,6 +68,7 @@ class Trainer:
         
     def train(self):
         print('STARTING TRAIN...')
+        f1_ner_total_best = 0
         for epoch in range(self.config.epochs):
             print("Epoch: {}".format(epoch))
             # print(len(self.train_dataset))
@@ -91,7 +92,15 @@ class Trainer:
             # pbar.set_description('TRAIN LOSS: {}'.format(loss_total/self.num_sample_total))
             if (epoch+1) % 1 == 0:
                 self.evaluate()
-        
+            # if epoch > 10 and f1_ner_total > f1_ner_total_best:
+            #     torch.save({
+            #         'epoch': epoch+1, 'state_dict': model.state_dict(), 'f1_best': f1_ner_total,
+            #         'optimizer': self.optimizer.state_dict(),
+            #     },
+            #     self.config.checkpoint_path + str(epoch) + 'm-' + 'f'+str("%.4f"%f1_ner_total) + 'n'+str("%.4f"%loss_ner_total) +
+            #     'r'+str("%.4f"%loss_rel_total) + '.pth'
+            #     )
+            
     
     def train_batch(self, data_item):
         # print("haha4")
@@ -104,7 +113,7 @@ class Trainer:
         loss_ner, loss_rel, pred_ner, pred_rel = self.model(data_item)
         pred_token_type = self.restore_ner(pred_ner, data_item['mask_tokens'])
         f1_ner = f1_score(data_item['token_type_origin'], pred_token_type)
-        loss = (loss_ner + loss_rel*100)
+        loss = (loss_ner + loss_rel)
         # print("hello3")
         loss.backward()
         # print("hello4")
@@ -190,6 +199,8 @@ class Trainer:
         for item in pred_rel_list:
             subject, object, rel = [], [], []
             s_start, o_start = item[0], item[1]
+            if s_start == o_start:  # 防止自己和自己构成关系
+                continue
             if token_pred[s_start][0] != 'B' or token_pred[o_start][0] != 'B' or s_start > len(text) or o_start > len(text):
                 continue
             subject.append(text[s_start])
@@ -207,6 +218,7 @@ class Trainer:
             rel_all.append(item[2])
         
         return subject_all, object_all, rel_all
+
             
         
 if __name__ == '__main__':
@@ -214,7 +226,7 @@ if __name__ == '__main__':
     model = JointModel(config)
     data_processor = ModelDataPreparation(config)
     train_loader, dev_loader, test_loader = data_processor.get_train_dev_data(
-        '../data/train_small.json',
+        '../data/train_data_small.json',
     '../data/dev_small.json',
     '../data/predict.json')
     # train_loader, dev_loader, test_loader = data_processor.get_train_dev_data('../data/train_data_small.json')

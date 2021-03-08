@@ -30,7 +30,7 @@ class JointModel(nn.Module):
         self.hidden_dim = config.hidden_dim_lstm
         self.num_layers = config.num_layers
         self.batch_size = config.batch_size
-        self.layer_size = self.hidden_dim
+        self.layer_size = config.layer_size  # self.hidden_dim, 之前这里没有改
         self.num_token_type = config.num_token_type  # 实体类型的综述
         self.config = config
         
@@ -40,9 +40,9 @@ class JointModel(nn.Module):
                           bidirectional=True)
         self.is_train = True
         if USE_CUDA:
-            self.weights_rel = (torch.ones(self.config.num_relations) * 100).cuda()
+            self.weights_rel = (torch.ones(self.config.num_relations) * 500).cuda()
         else:
-            self.weights_rel = torch.ones(self.config.num_relations) * 100
+            self.weights_rel = torch.ones(self.config.num_relations) * 500
         self.weights_rel[0] = 1
 
         self.V_ner = nn.Parameter(torch.rand((config.num_token_type, self.layer_size)))
@@ -59,6 +59,7 @@ class JointModel(nn.Module):
         self.dropout_head_layer = torch.nn.Dropout(config.dropout_head)
         self.dropout_ner_layer = torch.nn.Dropout(config.dropout_ner)
         self.dropout_lstm_layer = torch.nn.Dropout(config.dropout_lstm)
+        self.crf_model = CRF(self.num_token_type, batch_first=True)
         
     def get_ner_score(self, output_lstm):
         
@@ -91,7 +92,8 @@ class JointModel(nn.Module):
         
         out_sum = self.broadcasting(left, right)
         out_sum_bias = out_sum + self.b_s_head
-        out_sum_bias = torch.tanh(out_sum_bias)  # relu
+        # out_sum_bias = torch.tanh(out_sum_bias)  # relu
+        out_sum_bias = F.elu(out_sum_bias)
         # out_sum_bias = F.leaky_relu(out_sum_bias,  negative_slope=0.01)  # relu
         if self.config.use_dropout:
             out_sum_bias = self.dropout_head_layer(out_sum_bias)
@@ -128,15 +130,15 @@ class JointModel(nn.Module):
         ner_score = self.get_ner_score(output_lstm)
         # print("hello0")
         # 下面是使用CFR
-        crf_model = CRF(self.num_token_type, batch_first=True)
+        
         if USE_CUDA:
-            crf_model = crf_model.cuda()
+            self.crf_model = self.crf_model.cuda()
         if not is_test:
-            log_likelihood = crf_model(ner_score, data_item['token_type_list'].to(torch.int64),
+            log_likelihood = self.crf_model(ner_score, data_item['token_type_list'].to(torch.int64),
                                        mask=data_item['mask_tokens'])
             loss_ner = -log_likelihood
             
-        pred_ner = crf_model.decode(ner_score)  # , mask=data_item['mask_tokens']
+        pred_ner = self.crf_model.decode(ner_score)  # , mask=data_item['mask_tokens']
         
         # 下面使用的是Softmax
         # loss_ner = F.softmax(ner_score, data_item['ner_type'])
@@ -160,7 +162,7 @@ class JointModel(nn.Module):
             # 这样计算交叉熵有问题吗
             # 交叉熵计算不适用 rel_score_prob， 应该是rel_score_matrix
             loss_rel = F.cross_entropy(rel_score_prob.permute(0, 3, 1, 2), data_item['pred_rel_matrix'], self.weights_rel)  # 要把分类放在第二维度
-        
+            loss_rel *= rel_score_prob.shape[1]
         rel_score_prob = rel_score_prob - (self.config.threshold_rel - 0.5)  # 超过了一定阈值之后才能判断关系
         pred_rel = torch.round(rel_score_prob).to(torch.int64)
         # print("hello2")

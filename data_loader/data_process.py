@@ -81,6 +81,9 @@ class ModelDataPreparation:
                 return labeling_list, predicate_value_list, predicate_location_list, have_error
             predicate_value_list[subject_idx_start].append(predicate_value)
             predicate_location_list[subject_idx_start].append(object_idx_start)
+            # 数据集中主体和客体是颠倒的，数据集中的主体是唯一的，这里颠倒一下，这样每行最多只有一个关系
+            # predicate_value_list[object_idx_start].append(predicate_value)
+            # predicate_location_list[object_idx_start].append(subject_idx_start)
 
         # 把 predicate_value_list和predicate_location_list空余位置填充满
         for idx in range(len(text_tokened)):
