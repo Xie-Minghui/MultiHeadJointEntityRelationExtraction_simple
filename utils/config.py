@@ -52,13 +52,14 @@ class Config:
         self.max_seq_length = 256
         self.num_sample = 204800
 
-        self.dropout_embedding = 0.5
+        self.dropout_embedding = 0.2
         self.dropout_lstm = 0.9
         self.dropout_lstm_output = 0.9
         self.dropout_head = 0.9
         self.dropout_ner = 0.8
         self.use_dropout = True
         self.threshold_rel = 0.7
+        self.teach_rate = 0.2
     
     def get_token_types(self):
         token_type_bio = []

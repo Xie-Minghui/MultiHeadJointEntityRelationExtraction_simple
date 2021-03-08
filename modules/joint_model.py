@@ -40,9 +40,9 @@ class JointModel(nn.Module):
                           bidirectional=True)
         self.is_train = True
         if USE_CUDA:
-            self.weights_rel = (torch.ones(self.config.num_relations) * 500).cuda()
+            self.weights_rel = (torch.ones(self.config.num_relations) * 100).cuda()
         else:
-            self.weights_rel = torch.ones(self.config.num_relations) * 500
+            self.weights_rel = torch.ones(self.config.num_relations) * 100
         self.weights_rel[0] = 1
 
         self.V_ner = nn.Parameter(torch.rand((config.num_token_type, self.layer_size)))
@@ -141,7 +141,7 @@ class JointModel(nn.Module):
         # pred_ner = torch.argmax(ner_score, 2)
         
         #--------------------------Relation
-        if not is_test:
+        if not is_test and torch.rand(1) > self.config.teach_rate:
             labels = data_item['token_type_list']
         else:
             if USE_CUDA:
