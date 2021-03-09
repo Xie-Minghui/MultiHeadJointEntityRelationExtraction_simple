@@ -172,8 +172,9 @@ class Trainer:
         data_item0 = data_item
         pred_ner, pred_rel = pred_ner[0], pred_rel[0]
         pred_rel_list = []
-        for i in range(pred_rel.shape[0]):
-            for j in range(pred_rel.shape[1]):
+        length = len([c for c in data_item['text'][0]])
+        for i in range(length):
+            for j in range(length):
                 for k in range(pred_rel.shape[2]):
                     if math.fabs(pred_rel[i, j, k] - 1.0) < 0.1:
                         # print(i, j, k, self.id2rel[k])
@@ -183,6 +184,7 @@ class Trainer:
         for i in pred_ner:
             token_pred.append(self.id2token_type[i])
         print("token_pred: {}".format(token_pred))
+        print("token_type_origin: {}".format(data_item0['token_type_origin'][0]))
         print(data_item0['text'][0])
         print(data_item0['spo_list'][0])
         print("pred_rel_list: {}".format(pred_rel_list))
@@ -226,7 +228,7 @@ if __name__ == '__main__':
     model = JointModel(config)
     data_processor = ModelDataPreparation(config)
     train_loader, dev_loader, test_loader = data_processor.get_train_dev_data(
-        '../data/train_data_small.json',
+        '../data/train_small.json',
     '../data/dev_small.json',
     '../data/predict.json')
     # train_loader, dev_loader, test_loader = data_processor.get_train_dev_data('../data/train_data_small.json')

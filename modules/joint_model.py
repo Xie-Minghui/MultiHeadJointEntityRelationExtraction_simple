@@ -14,6 +14,7 @@ import torch.nn.functional as F
 from torchcrf import CRF
 import numpy as np
 from utils.config import USE_CUDA
+from utils.FocalLoss import Focal_loss
 
 def setup_seed(seed):
     torch.manual_seed(seed)
@@ -54,6 +55,7 @@ class JointModel(nn.Module):
         self.W_head = nn.Parameter(torch.rand((self.layer_size, self.hidden_dim * 2 + self.config.token_type_dim)))
         self.V_head = nn.Parameter(torch.rand(self.layer_size, len(self.config.relations)))
         self.b_s_head = nn.Parameter(torch.rand(self.layer_size))
+        #self.b_c_head = nn.Parameter(torch.rand(config.num_relations))
         
         self.dropout_embedding_layer = torch.nn.Dropout(config.dropout_embedding)
         self.dropout_head_layer = torch.nn.Dropout(config.dropout_head)
@@ -61,10 +63,16 @@ class JointModel(nn.Module):
         self.dropout_lstm_layer = torch.nn.Dropout(config.dropout_lstm)
         self.crf_model = CRF(self.num_token_type, batch_first=True)
         
+        self.weights_loss = [100 for i in range(config.num_relations)]
+        self.weights_loss[0] = 1
+        self.focal_loss = Focal_loss(alpha=self.weights_loss, gamma=2, num_classes=config.num_relations)
+        
     def get_ner_score(self, output_lstm):
         
         res = torch.matmul(output_lstm, self.U_ner.transpose(-1, -2)) + self.b_s_ner # [seq_len, batch, self.layer_size]
-        res = torch.tanh(res)
+        m = nn.Hardtanh()
+        # res = torch.tanh(res)
+        res = m(res)
         # res = F.leaky_relu(res,  negative_slope=0.01)
         if self.config.use_dropout:
             res = self.dropout_ner_layer(res)
@@ -92,8 +100,9 @@ class JointModel(nn.Module):
         
         out_sum = self.broadcasting(left, right)
         out_sum_bias = out_sum + self.b_s_head
-        # out_sum_bias = torch.tanh(out_sum_bias)  # relu
-        out_sum_bias = F.elu(out_sum_bias)
+        m = nn.Hardtanh()
+        out_sum_bias = m(out_sum_bias)  # relu
+        # out_sum_bias = F.elu(out_sum_bias)  #使用elu会导致正数不变，但是负数减少，可能导致后面计算的结果正数过多，从而误判为关系
         # out_sum_bias = F.leaky_relu(out_sum_bias,  negative_slope=0.01)  # relu
         if self.config.use_dropout:
             out_sum_bias = self.dropout_head_layer(out_sum_bias)
@@ -161,7 +170,9 @@ class JointModel(nn.Module):
         if not is_test:
             # 这样计算交叉熵有问题吗
             # 交叉熵计算不适用 rel_score_prob， 应该是rel_score_matrix
-            loss_rel = F.cross_entropy(rel_score_prob.permute(0, 3, 1, 2), data_item['pred_rel_matrix'], self.weights_rel)  # 要把分类放在第二维度
+            # loss_rel = F.cross_entropy(rel_score_prob.permute(0, 3, 1, 2), data_item['pred_rel_matrix'], self.weights_rel)  # 要把分类放在第二维度
+            # loss_rel *= rel_score_prob.shape[1]
+            loss_rel = self.focal_loss(rel_score_prob, data_item['pred_rel_matrix'])
             loss_rel *= rel_score_prob.shape[1]
         rel_score_prob = rel_score_prob - (self.config.threshold_rel - 0.5)  # 超过了一定阈值之后才能判断关系
         pred_rel = torch.round(rel_score_prob).to(torch.int64)

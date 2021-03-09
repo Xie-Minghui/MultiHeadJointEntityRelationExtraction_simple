@@ -23,11 +23,11 @@ class Config:
                  epochs=100,
                  vocab_size=22000,
                  embedding_dim=32,
-                 hidden_dim_lstm=128,
+                 hidden_dim_lstm=64,
                  num_layers=3,
                  batch_size=32,
                  layer_size=128,
-                 token_type_dim=8
+                 token_type_dim=12
                  ):
         self.lr = lr
         self.epochs = epochs
@@ -49,7 +49,7 @@ class Config:
         self.num_token_type = len(self.token_types)
         self.vocab_file = '../data/vocab.txt'
         self.max_seq_length = 256
-        self.num_sample = 204800
+        self.num_sample = 20480
 
         self.dropout_embedding = 0.1  # 从0.2到0.1
         self.dropout_lstm = 0.1
@@ -58,7 +58,7 @@ class Config:
         self.dropout_ner = 0.8
         self.use_dropout = True
         self.threshold_rel = 0.95  # 从0.7到0.95
-        self.teach_rate = 0.2
+        self.teach_rate = 0.1
         self.checkpoint_path = '../models/'
     
     def get_token_types(self):
