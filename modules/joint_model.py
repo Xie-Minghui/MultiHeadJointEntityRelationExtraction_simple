@@ -14,7 +14,7 @@ import torch.nn.functional as F
 from torchcrf import CRF
 import numpy as np
 from utils.config import USE_CUDA
-from utils.FocalLoss import Focal_loss
+# from utils.FocalLoss import Focal_loss
 
 def setup_seed(seed):
     torch.manual_seed(seed)
@@ -63,9 +63,9 @@ class JointModel(nn.Module):
         self.dropout_lstm_layer = torch.nn.Dropout(config.dropout_lstm)
         self.crf_model = CRF(self.num_token_type, batch_first=True)
         
-        self.weights_loss = [100 for i in range(config.num_relations)]
-        self.weights_loss[0] = 1
-        self.focal_loss = Focal_loss(alpha=self.weights_loss, gamma=2, num_classes=config.num_relations)
+        # self.weights_loss = [100 for i in range(config.num_relations)]
+        # self.weights_loss[0] = 1
+        # self.focal_loss = Focal_loss(alpha=self.weights_loss, gamma=4, num_classes=config.num_relations)
         
     def get_ner_score(self, output_lstm):
         
@@ -100,8 +100,8 @@ class JointModel(nn.Module):
         
         out_sum = self.broadcasting(left, right)
         out_sum_bias = out_sum + self.b_s_head
-        m = nn.Hardtanh()
-        out_sum_bias = m(out_sum_bias)  # relu
+        # m = nn.Hardtanh()
+        out_sum_bias = torch.tanh(out_sum_bias)  # relu
         # out_sum_bias = F.elu(out_sum_bias)  #使用elu会导致正数不变，但是负数减少，可能导致后面计算的结果正数过多，从而误判为关系
         # out_sum_bias = F.leaky_relu(out_sum_bias,  negative_slope=0.01)  # relu
         if self.config.use_dropout:
@@ -121,23 +121,19 @@ class JointModel(nn.Module):
         :return:
         :rtype:
         '''
-        # print("hello5")
         embeddings = self.word_embedding(data_item['text_tokened'].to(torch.int64))  # 要转化为int64
         if self.config.use_dropout:
             embeddings = self.dropout_embedding_layer(embeddings)
-        # if hidden_init is None:
-        # print("hello6")
+
         if USE_CUDA:
             hidden_init = torch.randn(2*self.num_layers, self.batch_size, self.hidden_dim).cuda()
         else:
             hidden_init = torch.randn(2 * self.num_layers, self.batch_size, self.hidden_dim)
         output_lstm, h_n =self.gru(embeddings, hidden_init)
         # output_lstm [batch, seq_len, 2*hidden_dim]  h_n [2*num_layers, batch, hidden_dim]
-        # print("hello7")
         # if self.config.use_dropout:
         #     output_lstm = self.dropout_lstm_layer(output_lstm)  # 用了效果变差
         ner_score = self.get_ner_score(output_lstm)
-        # print("hello0")
         # 下面是使用CFR
         
         if USE_CUDA:
@@ -149,10 +145,6 @@ class JointModel(nn.Module):
             
         pred_ner = self.crf_model.decode(ner_score)  # , mask=data_item['mask_tokens']
         
-        # 下面使用的是Softmax
-        # loss_ner = F.softmax(ner_score, data_item['ner_type'])
-        # pred_ner = torch.argmax(ner_score, 2)
-        
         #--------------------------Relation
         if not is_test and torch.rand(1) > self.config.teach_rate:
             labels = data_item['token_type_list']
@@ -161,26 +153,31 @@ class JointModel(nn.Module):
                 labels = torch.Tensor(pred_ner).cuda()
             else:
                 labels = torch.Tensor(pred_ner)
-        # print("hello1")
         label_embeddings = self.token_type_embedding(labels.to(torch.int64))
         rel_input = torch.cat((output_lstm, label_embeddings), 2)
         rel_score_matrix = self.getHeadSelectionScores(rel_input)  # [batch, seq_len, seq_len, num_relation]
-        rel_score_prob = torch.sigmoid(rel_score_matrix)
-        #gold_predicate_matrix_one_hot = F.one_hot(data_item['pred_rel_matrix'], len(self.config.relations))
         if not is_test:
-            # 这样计算交叉熵有问题吗
-            # 交叉熵计算不适用 rel_score_prob， 应该是rel_score_matrix
-            # loss_rel = F.cross_entropy(rel_score_prob.permute(0, 3, 1, 2), data_item['pred_rel_matrix'], self.weights_rel)  # 要把分类放在第二维度
+            loss_rel = self.masked_BCEloss(data_item['mask_tokens'], rel_score_matrix, data_item['pred_rel_matrix'], self.weights_rel)  # 要把分类放在第二维度
             # loss_rel *= rel_score_prob.shape[1]
-            loss_rel = self.focal_loss(rel_score_prob, data_item['pred_rel_matrix'])
-            loss_rel *= rel_score_prob.shape[1]
-        rel_score_prob = rel_score_prob - (self.config.threshold_rel - 0.5)  # 超过了一定阈值之后才能判断关系
+            # loss_rel = self.focal_loss(rel_score_prob, data_item['pred_rel_matrix'])
+            # loss_rel *= rel_score_prob.shape[1]
+        # rel_score_prob = rel_score_prob - (self.config.threshold_rel - 0.5)  # 超过了一定阈值之后才能判断关系
+        rel_score_prob = torch.sigmoid(rel_score_matrix)
         pred_rel = torch.round(rel_score_prob).to(torch.int64)
-        # print("hello2")
         if is_test:
             return pred_ner, pred_rel
-        # loss_ner = min(loss_ner, 30000)
-        # loss_rel = min(loss_rel, 10)
-        return loss_ner, loss_rel, pred_ner, pred_rel
 
+        return loss_ner, loss_rel, pred_ner, pred_rel
+    
+    def masked_BCEloss(self, mask, selection_logits, selection_gold, weights_rel):
+        selection_mask = (mask.unsqueeze(2) *
+                          mask.unsqueeze(1)).unsqueeze(3).expand(-1, -1, -1, self.config.num_relations)
+        gold_predicate_matrix_one_hot = F.one_hot(selection_gold, self.config.num_relations)
+        selection_loss = F.binary_cross_entropy_with_logits(selection_logits,
+                                                            gold_predicate_matrix_one_hot.float(),
+                                                            weight=weights_rel,
+                                                            reduction='none')
+        selection_loss = selection_loss.masked_select(selection_mask).sum()
+        selection_loss /= mask.sum()
+        return selection_loss
 

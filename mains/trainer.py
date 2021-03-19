@@ -71,13 +71,9 @@ class Trainer:
         f1_ner_total_best = 0
         for epoch in range(self.config.epochs):
             print("Epoch: {}".format(epoch))
-            # print(len(self.train_dataset))
             pbar = tqdm(enumerate(self.train_dataset), total=len(self.train_dataset))
             loss_total, loss_ner_total, loss_rel_total, f1_ner_total = 0, 0, 0, 0
-            # first = True
-            # print("haha1")
             for i, data_item in pbar:
-                # print("haha2")
                 loss_ner, loss_rel, pred_ner, pred_rel, f1_ner = self.train_batch(data_item)
 
                 loss_total += (loss_ner + loss_rel)
@@ -85,8 +81,8 @@ class Trainer:
                 loss_rel_total += loss_rel
                 f1_ner_total += f1_ner
                 
-            if (epoch+1) % 1 == 0:
-                self.predict_sample()
+            # if (epoch+1) % 1 == 0:
+            #     self.predict_sample()
             print("train ner loss: {0}, rel loss: {1}, f1 score: {2}".format(loss_ner_total/self.num_sample_total, loss_rel_total/self.num_sample_total,
                                                                         f1_ner_total/self.num_sample_total*self.config.batch_size))
             # pbar.set_description('TRAIN LOSS: {}'.format(loss_total/self.num_sample_total))
@@ -100,23 +96,14 @@ class Trainer:
             #     self.config.checkpoint_path + str(epoch) + 'm-' + 'f'+str("%.4f"%f1_ner_total) + 'n'+str("%.4f"%loss_ner_total) +
             #     'r'+str("%.4f"%loss_rel_total) + '.pth'
             #     )
-            
     
     def train_batch(self, data_item):
-        # print("haha4")
         self.optimizer.zero_grad()
-        # self.loss_ner, self.loss_rel, self.pred_ner, self.pred_rel = self.model(data_item)
-        # self.loss = self.loss_ner + self.loss_rel
-        # self.loss.backward()
-        # self.optimizer.step()
-        # print("haha5")
         loss_ner, loss_rel, pred_ner, pred_rel = self.model(data_item)
         pred_token_type = self.restore_ner(pred_ner, data_item['mask_tokens'])
         f1_ner = f1_score(data_item['token_type_origin'], pred_token_type)
         loss = (loss_ner + loss_rel)
-        # print("hello3")
         loss.backward()
-        # print("hello4")
         self.optimizer.step()
         
         return loss_ner, loss_rel, pred_ner, pred_rel, f1_ner
