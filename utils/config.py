@@ -19,15 +19,15 @@ else:
 
 class Config:
     def __init__(self,
-                 lr=0.0005,
+                 lr=0.0001,
                  epochs=100,
                  vocab_size=22000,
                  embedding_dim=100,
                  hidden_dim_lstm=64,
                  num_layers=3,
                  batch_size=32,
-                 layer_size=128,
-                 token_type_dim=12
+                 layer_size=64,
+                 token_type_dim=8
                  ):
         self.lr = lr
         self.epochs = epochs
@@ -49,11 +49,11 @@ class Config:
         self.num_token_type = len(self.token_types)
         self.vocab_file = '../data/vocab.txt'
         self.max_seq_length = 256
-        self.num_sample = 5480
+        self.num_sample = 20480
 
         self.dropout_embedding = 0.1  # 从0.2到0.1
         self.dropout_lstm = 0.1
-        self.dropout_lstm_output = 0.9
+        self.dropout_lstm_output = 0.1
         self.dropout_head = 0.1  # 只更改这个参数 0.9到0.5
         self.dropout_ner = 0.1
         self.use_dropout = True

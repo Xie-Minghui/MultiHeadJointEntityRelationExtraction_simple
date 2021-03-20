@@ -43,7 +43,7 @@ class JointModel(nn.Module):
         self.token_type_embedding = nn.Embedding(config.num_token_type, config.token_type_dim)
         self.rel_embedding = nn.Embedding(config.num_relations, config.rel_emb_size)
         self.gru = nn.GRU(config.embedding_dim, config.hidden_dim_lstm, num_layers=config.num_layers, batch_first=True,
-                          bidirectional=True)
+                          bidirectional=True, dropout=config.dropout_lstm)
         self.is_train = True
         if USE_CUDA:
             self.weights_rel = (torch.ones(self.config.num_relations) * 100).cuda()
@@ -90,18 +90,18 @@ class JointModel(nn.Module):
         
         return ans
     
-    def broadcasting(self, left, right):
-        left = left.permute(1, 0, 2)
-        left = left.unsqueeze(3)
-        
-        right = right.permute(0, 2, 1)
-        right = right.unsqueeze(0)
-        
-        B = left + right  # [seq_len, batch, layer_size, seq_len] = [seq_len, batch, layer_size, 1] + [1, batch, layer_size, seq_len]
-        B = B.permute(1, 0, 3, 2)
-        
-        return B  # [batch, seq_len, seq_len, layer_size]
-    
+    # def broadcasting(self, left, right):
+    #     left = left.permute(1, 0, 2)
+    #     left = left.unsqueeze(3)
+    #
+    #     right = right.permute(0, 2, 1)
+    #     right = right.unsqueeze(0)
+    #
+    #     B = left + right  # [seq_len, batch, layer_size, seq_len] = [seq_len, batch, layer_size, 1] + [1, batch, layer_size, seq_len]
+    #     B = B.permute(1, 0, 3, 2)
+    #
+    #     return B  # [batch, seq_len, seq_len, layer_size]
+    #
     # def getHeadSelectionScores(self, rel_input):
     #
     #     left = torch.matmul(rel_input, self.U_head.transpose(-1, -2))  # [batch, seq, self.layer_size]
@@ -155,41 +155,40 @@ class JointModel(nn.Module):
         pred_ner = self.crf_model.decode(ner_score)  # , mask=data_item['mask_tokens']
         
         #--------------------------Relation
-        # if not is_test and torch.rand(1) > self.config.teach_rate:
-        #     labels = data_item['token_type_list']
-        # else:
-        #     if USE_CUDA:
-        #         labels = torch.Tensor(pred_ner).cuda()
-        #     else:
-        #         labels = torch.Tensor(pred_ner)
-        # label_embeddings = self.token_type_embedding(labels.to(torch.int64))
-        # rel_input = torch.cat((output_lstm, label_embeddings), 2)
-        # # rel_score_matrix = self.getHeadSelectionScores(rel_input)  # [batch, seq_len, seq_len, num_relation]
-        # B, L, H = rel_input.size()
-        # u = torch.tanh(self.selection_u(rel_input)).unsqueeze(1).expand(B, L, L, -1)  # (B,L,L,R)
-        # v = torch.tanh(self.selection_v(rel_input)).unsqueeze(2).expand(B, L, L, -1)
-        # uv = torch.tanh(self.selection_uv(torch.cat((u, v), dim=-1)))
-        # selection_logits = torch.einsum('bijh,rh->birj', uv, self.rel_embedding.weight)
-        # selection_logits = selection_logits.permute(0,1,3,2)
-        # if not is_test:
-        #     loss_rel = self.masked_BCEloss(data_item['mask_tokens'], selection_logits, data_item['pred_rel_matrix'], self.weights_rel)  # 要把分类放在第二维度
-        #     # loss_rel *= rel_score_prob.shape[1]
-        #     # loss_rel = self.focal_loss(rel_score_prob, data_item['pred_rel_matrix'])
-        #     # loss_rel *= rel_score_prob.shape[1]
-        # # rel_score_prob = rel_score_prob - (self.config.threshold_rel - 0.5)  # 超过了一定阈值之后才能判断关系
-        # rel_score_prob = torch.sigmoid(selection_logits)
-        # pred_rel = torch.round(rel_score_prob).to(torch.int64)
-        # if is_test:
-        #     return pred_ner, pred_rel
-        #
-        # return loss_ner, loss_rel, pred_ner, pred_rel
-        pred_rel, loss_rel = None, 0
+        if not is_test and torch.rand(1) > self.config.teach_rate:
+            labels = data_item['token_type_list']
+        else:
+            if USE_CUDA:
+                labels = torch.Tensor(pred_ner).cuda()
+            else:
+                labels = torch.Tensor(pred_ner)
+        label_embeddings = self.token_type_embedding(labels.to(torch.int64))
+        rel_input = torch.cat((output_lstm, label_embeddings), 2)
+        # rel_score_matrix = self.getHeadSelectionScores(rel_input)  # [batch, seq_len, seq_len, num_relation]
+        B, L, H = rel_input.size()
+        u = torch.tanh(self.selection_u(rel_input)).unsqueeze(1).expand(B, L, L, -1)  # (B,L,L,R)
+        v = torch.tanh(self.selection_v(rel_input)).unsqueeze(2).expand(B, L, L, -1)
+        uv = torch.tanh(self.selection_uv(torch.cat((u, v), dim=-1)))
+        selection_logits = torch.einsum('bijh,rh->birj', uv, self.rel_embedding.weight)
+        selection_logits = selection_logits.permute(0,1,3,2)
+        if not is_test:
+            loss_rel = self.masked_BCEloss(data_item['mask_tokens'], selection_logits, data_item['pred_rel_matrix'], self.weights_rel)  # 要把分类放在第二维度
+            # loss_rel *= rel_score_prob.shape[1]
+            # loss_rel = self.focal_loss(rel_score_prob, data_item['pred_rel_matrix'])
+            # loss_rel *= rel_score_prob.shape[1]
+        # rel_score_prob = rel_score_prob - (self.config.threshold_rel - 0.5)  # 超过了一定阈值之后才能判断关系
+        rel_score_prob = torch.sigmoid(selection_logits)
+        pred_rel = torch.round(rel_score_prob).to(torch.int64)
         if is_test:
             return pred_ner, pred_rel
 
         return loss_ner, loss_rel, pred_ner, pred_rel
+        # pred_rel, loss_rel = None, 0
+        # if is_test:
+        #     return pred_ner, pred_rel
+        #
+        # return loss_ner, loss_rel, pred_ner, pred_rel
         
-    
     def masked_BCEloss(self, mask, selection_logits, selection_gold, weights_rel):
         selection_mask = (mask.unsqueeze(2) *
                           mask.unsqueeze(1)).unsqueeze(3).expand(-1, -1, -1, self.config.num_relations)

@@ -123,13 +123,17 @@ class Trainer:
         self.model.train(False)
         pbar_dev = tqdm(enumerate(self.dev_dataset), total=len(self.dev_dataset))
         
-        loss_total, loss_ner_total, loss_rel_total = 0, 0, 0
+        loss_total, loss_ner_total, loss_rel_total, f1_ner_total = 0, 0, 0, 0
+        samle_num = len(self.dev_dataset) * self.config.batch_size
         for i, data_item in pbar_dev:
             loss_ner, loss_rel, pred_ner, pred_rel = self.model(data_item)
+            pred_token_type = self.restore_ner(pred_ner, data_item['mask_tokens'])
+            f1_ner = f1_score(data_item['token_type_origin'], pred_token_type)
+            f1_ner_total += f1_ner
             loss_ner_total += loss_ner
             loss_rel_total += loss_rel
             # loss_total += (loss_ner + loss_rel)
-        print("eval ner loss: {0}, rel loss: {1}".format(loss_ner_total, loss_rel_total))
+        print("eval ner loss: {0}, rel loss: {1}, f1 score: {2}".format(loss_ner_total/samle_num, loss_rel_total/samle_num, f1_ner_total/len(self.dev_dataset)))
         self.model.train(True)
         
         return loss_total / (len(self.dev_dataset) * 8)
@@ -146,54 +150,54 @@ class Trainer:
         print(pred_rel)
         self.model.train(True)
 
-    # def predict_sample(self):
-    #     print('STARTING TESTING...')
-    #     self.model.train(False)
-    #     pbar = tqdm(enumerate(self.test_dataset), total=len(self.test_dataset))
-    #     data_item0 = None
-    #     for i, data_item in pbar:
-    #
-    #         pred_ner, pred_rel = self.model(data_item, is_test=True)
-    #     data_item0 = data_item
-    #     pred_ner, pred_rel = pred_ner[0], pred_rel[0]
-    #     pred_rel_list = []
-    #     length = len([c for c in data_item['text'][0]])
-    #     for i in range(length):
-    #         for j in range(length):
-    #             for k in range(pred_rel.shape[2]):
-    #                 if math.fabs(pred_rel[i, j, k] - 1.0) < 0.1:
-    #                     # print(i, j, k, self.id2rel[k])
-    #                     if k != 0:
-    #                         pred_rel_list.append([i, j, self.id2rel[k]])
-    #     token_pred = []
-    #     for i in pred_ner:
-    #         token_pred.append(self.id2token_type[i])
-    #     print("token_pred: {}".format(token_pred))
-    #     print("token_type_origin: {}".format(data_item0['token_type_origin'][0]))
-    #     print(data_item0['text'][0])
-    #     print(data_item0['spo_list'][0])
-    #     print("pred_rel_list: {}".format(pred_rel_list))
-    #     self.model.train(True)
-    #     subject_all, object_all, rel_all = self.convert2StandardOutput(data_item0, token_pred, pred_rel_list)
-    #     print("Results:")
-    #     print("主体： \n", subject_all)
-    #     print("客体： \n", object_all)
-    #     print("关系： \n", rel_all)
-
     def predict_sample(self):
         print('STARTING TESTING...')
         self.model.train(False)
         pbar = tqdm(enumerate(self.test_dataset), total=len(self.test_dataset))
+        data_item0 = None
         for i, data_item in pbar:
+
             pred_ner, pred_rel = self.model(data_item, is_test=True)
-        pred_ner = pred_ner[0]
+        data_item0 = data_item
+        pred_ner, pred_rel = pred_ner[0], pred_rel[0]
+        pred_rel_list = []
+        length = len([c for c in data_item['text'][0]])
+        for i in range(length):
+            for j in range(length):
+                for k in range(pred_rel.shape[2]):
+                    if math.fabs(pred_rel[i, j, k] - 1.0) < 0.1:
+                        # print(i, j, k, self.id2rel[k])
+                        if k != 0:
+                            pred_rel_list.append([i, j, self.id2rel[k]])
         token_pred = []
         for i in pred_ner:
             token_pred.append(self.id2token_type[i])
         print("token_pred: {}".format(token_pred))
-        print("token_type_origin: {}".format(data_item['token_type_origin'][0]))
-        print(data_item['text'][0])
-        print(data_item['spo_list'][0])
+        print("token_type_origin: {}".format(data_item0['token_type_origin'][0]))
+        print(data_item0['text'][0])
+        print(data_item0['spo_list'][0])
+        print("pred_rel_list: {}".format(pred_rel_list))
+        self.model.train(True)
+        subject_all, object_all, rel_all = self.convert2StandardOutput(data_item0, token_pred, pred_rel_list)
+        print("Results:")
+        print("主体： \n", subject_all)
+        print("客体： \n", object_all)
+        print("关系： \n", rel_all)
+
+    # def predict_sample(self):
+    #     print('STARTING TESTING...')
+    #     self.model.train(False)
+    #     pbar = tqdm(enumerate(self.test_dataset), total=len(self.test_dataset))
+    #     for i, data_item in pbar:
+    #         pred_ner, pred_rel = self.model(data_item, is_test=True)
+    #     pred_ner = pred_ner[0]
+    #     token_pred = []
+    #     for i in pred_ner:
+    #         token_pred.append(self.id2token_type[i])
+    #     print("token_pred: {}".format(token_pred))
+    #     print("token_type_origin: {}".format(data_item['token_type_origin'][0]))
+    #     print(data_item['text'][0])
+    #     print(data_item['spo_list'][0])
         
     def convert2StandardOutput(self, data_item, token_pred, pred_rel_list):
         subject_all, object_all, rel_all = [], [], []
@@ -252,7 +256,7 @@ if __name__ == '__main__':
     embedding_pre = get_embedding_pre()
     data_processor = ModelDataPreparation(config)
     train_loader, dev_loader, test_loader = data_processor.get_train_dev_data(
-        '../data/train_small.json',
+        '../data/train_data_small.json',
     '../data/dev_small.json',
     '../data/predict.json')
     model = JointModel(config, embedding_pre)
