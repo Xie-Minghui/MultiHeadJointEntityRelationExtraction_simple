@@ -27,7 +27,7 @@ class Config:
                  num_layers=3,  # 上去会超过内存
                  batch_size=32,
                  layer_size=64,
-                 token_type_dim=16
+                 token_type_dim=12
                  ):
         self.lr = lr
         self.epochs = epochs
@@ -57,7 +57,7 @@ class Config:
         self.dropout_head = 0.1  # 只更改这个参数 0.9到0.5
         self.dropout_ner = 0.1
         self.use_dropout = True
-        self.threshold_rel = 0.95  # 从0.7到0.95
+        self.threshold_rel = 0.9  # 从0.7到0.95
         self.teach_rate = 0.0
         self.checkpoint_path = '../models/'
         self.rel_emb_size = 64

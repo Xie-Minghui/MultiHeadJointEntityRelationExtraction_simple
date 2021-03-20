@@ -187,6 +187,7 @@ class JointModel(nn.Module):
             # loss_rel *= rel_score_prob.shape[1]
         # rel_score_prob = rel_score_prob - (self.config.threshold_rel - 0.5)  # 超过了一定阈值之后才能判断关系
         rel_score_prob = torch.sigmoid(selection_logits)
+        rel_score_prob = rel_score_prob - (self.config.threshold_rel - 0.5)  # 超过了一定阈值之后才能判断关系
         pred_rel = torch.round(rel_score_prob).to(torch.int64)
         if is_test:
             return pred_ner, pred_rel
