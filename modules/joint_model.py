@@ -57,10 +57,10 @@ class JointModel(nn.Module):
             self.pos_weights_rel = torch.ones(self.config.num_relations) * 20
         self.pos_weights_rel[0] = 1
 
-        self.V_ner = nn.Parameter(torch.rand((config.num_token_type, self.layer_size)))
-        self.U_ner = nn.Parameter(torch.rand((self.layer_size, 2 * self.hidden_dim)))
-        self.b_s_ner = nn.Parameter(torch.rand(self.layer_size))
-        self.b_c_ner = nn.Parameter(torch.rand(config.num_token_type))
+        # self.V_ner = nn.Parameter(torch.rand((config.num_token_type, self.layer_size)))
+        # self.U_ner = nn.Parameter(torch.rand((self.layer_size, 2 * self.hidden_dim)))
+        # self.b_s_ner = nn.Parameter(torch.rand(self.layer_size))
+        # self.b_c_ner = nn.Parameter(torch.rand(config.num_token_type))
 
         # self.U_head = nn.Parameter(torch.rand((self.layer_size, self.hidden_dim * 2 + self.config.token_type_dim)))
         # self.W_head = nn.Parameter(torch.rand((self.layer_size, self.hidden_dim * 2 + self.config.token_type_dim)))
@@ -69,12 +69,12 @@ class JointModel(nn.Module):
         #self.b_c_head = nn.Parameter(torch.rand(config.num_relations))
         
         self.dropout_embedding_layer = torch.nn.Dropout(config.dropout_embedding)
-        self.dropout_head_layer = torch.nn.Dropout(config.dropout_head)
-        self.dropout_ner_layer = torch.nn.Dropout(config.dropout_ner)
-        self.dropout_lstm_layer = torch.nn.Dropout(config.dropout_lstm)
+        # self.dropout_head_layer = torch.nn.Dropout(config.dropout_head)
+        # self.dropout_ner_layer = torch.nn.Dropout(config.dropout_ner)
+        # self.dropout_lstm_layer = torch.nn.Dropout(config.dropout_lstm)
         self.crf_model = CRF(self.num_token_type, batch_first=True)
         
-        # self.ner_layer = nn.Linear(config.hidden_dim_lstm*2, config.num_token_type)
+        self.ner_layer = nn.Linear(config.hidden_dim_lstm*2, config.num_token_type)
         
         self.selection_u = nn.Linear(self.hidden_dim * 2 + self.config.token_type_dim, config.rel_emb_size)
         self.selection_v = nn.Linear(self.hidden_dim * 2 + self.config.token_type_dim, config.rel_emb_size)
@@ -150,7 +150,8 @@ class JointModel(nn.Module):
         # output_lstm [batch, seq_len, 2*hidden_dim]  h_n [2*num_layers, batch, hidden_dim]
         # if self.config.use_dropout:
         #     output_lstm = self.dropout_lstm_layer(output_lstm)  # 用了效果变差
-        ner_score = self.get_ner_score(output_lstm)
+        # ner_score = self.get_ner_score(output_lstm)
+        ner_score = self.ner_layer(output_lstm)
         # 下面是使用CFR
         
         if USE_CUDA:

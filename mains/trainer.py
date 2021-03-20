@@ -224,12 +224,13 @@ class Trainer:
             while o_start < len(text) and (token_pred[o_start][0] == 'I'): #  or token_pred[o_start][0] == 'B'
                 object.append(text[o_start])
                 o_start += 1
-            is_repeted = False
+            is_repeated = False
             if rel_all is not None:
                 for i in range(len(rel_all)):
                     if subject == subject_all[i] and object == object_all[i] and item[2] == rel_all[i]:
+                        is_repeated = True
                         break
-            if not is_repeted:
+            if not is_repeated:
                 subject_all.append(''.join(subject))
                 object_all.append(''.join(object))
                 rel_all.append(item[2])

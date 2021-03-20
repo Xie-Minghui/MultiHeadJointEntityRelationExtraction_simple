@@ -27,7 +27,7 @@ class Config:
                  num_layers=3,  # 上去会超过内存
                  batch_size=32,
                  layer_size=64,
-                 token_type_dim=12
+                 token_type_dim=16
                  ):
         self.lr = lr
         self.epochs = epochs
