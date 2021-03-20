@@ -27,6 +27,7 @@ from seqeval.metrics import recall_score
 from seqeval.metrics import classification_report
 import numpy as np
 import codecs
+import random
 
 class Trainer:
     def __init__(self,
@@ -86,14 +87,14 @@ class Trainer:
             # pbar.set_description('TRAIN LOSS: {}'.format(loss_total/self.num_sample_total))
             if (epoch+1) % 1 == 0:
                 self.evaluate()
-            # if epoch > 10 and f1_ner_total > f1_ner_total_best:
-            #     torch.save({
-            #         'epoch': epoch+1, 'state_dict': model.state_dict(), 'f1_best': f1_ner_total,
-            #         'optimizer': self.optimizer.state_dict(),
-            #     },
-            #     self.config.checkpoint_path + str(epoch) + 'm-' + 'f'+str("%.4f"%f1_ner_total) + 'n'+str("%.4f"%loss_ner_total) +
-            #     'r'+str("%.4f"%loss_rel_total) + '.pth'
-            #     )
+            if epoch > 8 and f1_ner_total > f1_ner_total_best:
+                torch.save({
+                    'epoch': epoch+1, 'state_dict': model.state_dict(), 'f1_best': f1_ner_total,
+                    'optimizer': self.optimizer.state_dict(),
+                },
+                self.config.checkpoint_path + str(epoch) + 'm-' + 'f'+str("%.2f"%f1_ner_total) + 'n'+str("%.2f"%loss_ner_total) +
+                'r'+str("%.2f"%loss_rel_total) + '.pth'
+                )
     
     def train_batch(self, data_item):
         self.optimizer.zero_grad()
@@ -136,7 +137,7 @@ class Trainer:
         print("eval ner loss: {0}, rel loss: {1}, f1 score: {2}".format(loss_ner_total/samle_num, loss_rel_total/samle_num, f1_ner_total/len(self.dev_dataset)))
         self.model.train(True)
         
-        return loss_total / (len(self.dev_dataset) * 8)
+        return loss_total / (len(self.dev_dataset) * self.config.batch_size)
     
     def predict(self):
         print('STARTING TESTING...')
@@ -154,14 +155,14 @@ class Trainer:
         print('STARTING TESTING...')
         self.model.train(False)
         pbar = tqdm(enumerate(self.test_dataset), total=len(self.test_dataset))
-        data_item0 = None
         for i, data_item in pbar:
 
             pred_ner, pred_rel = self.model(data_item, is_test=True)
+        x = random.randint(0, 31)
         data_item0 = data_item
-        pred_ner, pred_rel = pred_ner[0], pred_rel[0]
+        pred_ner, pred_rel = pred_ner[x], pred_rel[x]
         pred_rel_list = []
-        length = len([c for c in data_item['text'][0]])
+        length = len([c for c in data_item['text'][x]])
         for i in range(length):
             for j in range(length):
                 for k in range(pred_rel.shape[2]):
@@ -170,15 +171,19 @@ class Trainer:
                         if k != 0:
                             pred_rel_list.append([i, j, self.id2rel[k]])
         token_pred = []
+        cnt = 0
         for i in pred_ner:
+            if cnt >= length:
+                break
             token_pred.append(self.id2token_type[i])
+            cnt += 1
         print("token_pred: {}".format(token_pred))
         print("token_type_origin: {}".format(data_item0['token_type_origin'][0]))
-        print(data_item0['text'][0])
-        print(data_item0['spo_list'][0])
+        print(data_item0['text'][x])
+        print(data_item0['spo_list'][x])
         print("pred_rel_list: {}".format(pred_rel_list))
         self.model.train(True)
-        subject_all, object_all, rel_all = self.convert2StandardOutput(data_item0, token_pred, pred_rel_list)
+        subject_all, object_all, rel_all = self.convert2StandardOutput(data_item0, x, token_pred, pred_rel_list)
         print("Results:")
         print("主体： \n", subject_all)
         print("客体： \n", object_all)
@@ -199,9 +204,9 @@ class Trainer:
     #     print(data_item['text'][0])
     #     print(data_item['spo_list'][0])
         
-    def convert2StandardOutput(self, data_item, token_pred, pred_rel_list):
+    def convert2StandardOutput(self, data_item, loc, token_pred, pred_rel_list):
         subject_all, object_all, rel_all = [], [], []
-        text = [c for c in data_item['text'][0]]
+        text = [c for c in data_item['text'][loc]]
         for item in pred_rel_list:
             subject, object, rel = [], [], []
             s_start, o_start = item[0], item[1]
@@ -219,10 +224,15 @@ class Trainer:
             while o_start < len(text) and (token_pred[o_start][0] == 'I'): #  or token_pred[o_start][0] == 'B'
                 object.append(text[o_start])
                 o_start += 1
-            subject_all.append(''.join(subject))
-            object_all.append(''.join(object))
-            rel_all.append(item[2])
-        
+            is_repeted = False
+            if rel_all is not None:
+                for i in range(len(rel_all)):
+                    if subject == subject_all[i] and object == object_all[i] and item[2] == rel_all[i]:
+                        break
+            if not is_repeted:
+                subject_all.append(''.join(subject))
+                object_all.append(''.join(object))
+                rel_all.append(item[2])
         return subject_all, object_all, rel_all
 
 def get_embedding_pre():

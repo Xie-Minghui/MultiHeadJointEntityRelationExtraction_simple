@@ -46,10 +46,16 @@ class JointModel(nn.Module):
                           bidirectional=True, dropout=config.dropout_lstm)
         self.is_train = True
         if USE_CUDA:
-            self.weights_rel = (torch.ones(self.config.num_relations) * 100).cuda()
+            self.weights_rel = (torch.ones(self.config.num_relations) * 50).cuda()
         else:
-            self.weights_rel = torch.ones(self.config.num_relations) * 100
+            self.weights_rel = torch.ones(self.config.num_relations) * 50
         self.weights_rel[0] = 1
+
+        if USE_CUDA:
+            self.pos_weights_rel = (torch.ones(self.config.num_relations) * 20).cuda()
+        else:
+            self.pos_weights_rel = torch.ones(self.config.num_relations) * 20
+        self.pos_weights_rel[0] = 1
 
         self.V_ner = nn.Parameter(torch.rand((config.num_token_type, self.layer_size)))
         self.U_ner = nn.Parameter(torch.rand((self.layer_size, 2 * self.hidden_dim)))
@@ -67,6 +73,8 @@ class JointModel(nn.Module):
         self.dropout_ner_layer = torch.nn.Dropout(config.dropout_ner)
         self.dropout_lstm_layer = torch.nn.Dropout(config.dropout_lstm)
         self.crf_model = CRF(self.num_token_type, batch_first=True)
+        
+        # self.ner_layer = nn.Linear(config.hidden_dim_lstm*2, config.num_token_type)
         
         self.selection_u = nn.Linear(self.hidden_dim * 2 + self.config.token_type_dim, config.rel_emb_size)
         self.selection_v = nn.Linear(self.hidden_dim * 2 + self.config.token_type_dim, config.rel_emb_size)
@@ -195,7 +203,8 @@ class JointModel(nn.Module):
         gold_predicate_matrix_one_hot = F.one_hot(selection_gold, self.config.num_relations)
         selection_loss = F.binary_cross_entropy_with_logits(selection_logits,
                                                             gold_predicate_matrix_one_hot.float(),
-                                                            weight=weights_rel,
+                                                            weight=self.weights_rel,
+                                                            pos_weight=self.pos_weights_rel,
                                                             reduction='none')
         selection_loss = selection_loss.masked_select(selection_mask).sum()
         selection_loss /= mask.sum()
