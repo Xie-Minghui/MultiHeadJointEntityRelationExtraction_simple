@@ -41,6 +41,7 @@ class JointModel(nn.Module):
             self.word_embedding = nn.Embedding(config.vocab_size, config.embedding_dim, padding_idx=config.pad_token_id)
         # self.word_embedding = nn.Embedding(config.vocab_size, config.embedding_dim)
         self.token_type_embedding = nn.Embedding(config.num_token_type, config.token_type_dim)
+        self.rel_embedding = nn.Embedding(config.num_relations, config.rel_emb_size)
         self.gru = nn.GRU(config.embedding_dim, config.hidden_dim_lstm, num_layers=config.num_layers, batch_first=True,
                           bidirectional=True)
         self.is_train = True
@@ -55,10 +56,10 @@ class JointModel(nn.Module):
         self.b_s_ner = nn.Parameter(torch.rand(self.layer_size))
         self.b_c_ner = nn.Parameter(torch.rand(config.num_token_type))
 
-        self.U_head = nn.Parameter(torch.rand((self.layer_size, self.hidden_dim * 2 + self.config.token_type_dim)))
-        self.W_head = nn.Parameter(torch.rand((self.layer_size, self.hidden_dim * 2 + self.config.token_type_dim)))
-        self.V_head = nn.Parameter(torch.rand(self.layer_size, len(self.config.relations)))
-        self.b_s_head = nn.Parameter(torch.rand(self.layer_size))
+        # self.U_head = nn.Parameter(torch.rand((self.layer_size, self.hidden_dim * 2 + self.config.token_type_dim)))
+        # self.W_head = nn.Parameter(torch.rand((self.layer_size, self.hidden_dim * 2 + self.config.token_type_dim)))
+        # self.V_head = nn.Parameter(torch.rand(self.layer_size, len(self.config.relations)))
+        # self.b_s_head = nn.Parameter(torch.rand(self.layer_size))
         #self.b_c_head = nn.Parameter(torch.rand(config.num_relations))
         
         self.dropout_embedding_layer = torch.nn.Dropout(config.dropout_embedding)
@@ -66,6 +67,10 @@ class JointModel(nn.Module):
         self.dropout_ner_layer = torch.nn.Dropout(config.dropout_ner)
         self.dropout_lstm_layer = torch.nn.Dropout(config.dropout_lstm)
         self.crf_model = CRF(self.num_token_type, batch_first=True)
+        
+        self.selection_u = nn.Linear(self.hidden_dim * 2 + self.config.token_type_dim, config.rel_emb_size)
+        self.selection_v = nn.Linear(self.hidden_dim * 2 + self.config.token_type_dim, config.rel_emb_size)
+        self.selection_uv = nn.Linear(2*config.rel_emb_size, config.rel_emb_size)
         
         # self.weights_loss = [100 for i in range(config.num_relations)]
         # self.weights_loss[0] = 1
@@ -97,24 +102,24 @@ class JointModel(nn.Module):
         
         return B  # [batch, seq_len, seq_len, layer_size]
     
-    def getHeadSelectionScores(self, rel_input):
-       
-        left = torch.matmul(rel_input, self.U_head.transpose(-1, -2))  # [batch, seq, self.layer_size]
-        right = torch.matmul(rel_input, self.W_head.transpose(-1, -2))
-        
-        out_sum = self.broadcasting(left, right)
-        out_sum_bias = out_sum + self.b_s_head
-        # m = nn.Hardtanh()
-        out_sum_bias = torch.tanh(out_sum_bias)  # relu
-        # out_sum_bias = F.elu(out_sum_bias)  #使用elu会导致正数不变，但是负数减少，可能导致后面计算的结果正数过多，从而误判为关系
-        # out_sum_bias = F.leaky_relu(out_sum_bias,  negative_slope=0.01)  # relu
-        if self.config.use_dropout:
-            out_sum_bias = self.dropout_head_layer(out_sum_bias)
-        res = torch.matmul(out_sum_bias, self.V_head)  # [layer_size, num_relation] [batch,..., num_relation]
-        # res的维度应该是 [batch, seq_len, seq_len, num_relation]
-        # if self.config.use_dropout:
-        #     res = self.dropout_head_layer(res)
-        return res
+    # def getHeadSelectionScores(self, rel_input):
+    #
+    #     left = torch.matmul(rel_input, self.U_head.transpose(-1, -2))  # [batch, seq, self.layer_size]
+    #     right = torch.matmul(rel_input, self.W_head.transpose(-1, -2))
+    #
+    #     out_sum = self.broadcasting(left, right)
+    #     out_sum_bias = out_sum + self.b_s_head
+    #     # m = nn.Hardtanh()
+    #     out_sum_bias = torch.tanh(out_sum_bias)  # relu
+    #     # out_sum_bias = F.elu(out_sum_bias)  #使用elu会导致正数不变，但是负数减少，可能导致后面计算的结果正数过多，从而误判为关系
+    #     # out_sum_bias = F.leaky_relu(out_sum_bias,  negative_slope=0.01)  # relu
+    #     if self.config.use_dropout:
+    #         out_sum_bias = self.dropout_head_layer(out_sum_bias)
+    #     res = torch.matmul(out_sum_bias, self.V_head)  # [layer_size, num_relation] [batch,..., num_relation]
+    #     # res的维度应该是 [batch, seq_len, seq_len, num_relation]
+    #     # if self.config.use_dropout:
+    #     #     res = self.dropout_head_layer(res)
+    #     return res
     
     def forward(self, data_item, is_test=False):
         # 因为不是多跳机制，所以hidden_init不能继承之前的最终隐含态
@@ -159,14 +164,20 @@ class JointModel(nn.Module):
                 labels = torch.Tensor(pred_ner)
         label_embeddings = self.token_type_embedding(labels.to(torch.int64))
         rel_input = torch.cat((output_lstm, label_embeddings), 2)
-        rel_score_matrix = self.getHeadSelectionScores(rel_input)  # [batch, seq_len, seq_len, num_relation]
+        # rel_score_matrix = self.getHeadSelectionScores(rel_input)  # [batch, seq_len, seq_len, num_relation]
+        B, L, H = rel_input.size()
+        u = torch.tanh(self.selection_u(rel_input)).unsqueeze(1).expand(B, L, L, -1)  # (B,L,L,R)
+        v = torch.tanh(self.selection_v(rel_input)).unsqueeze(2).expand(B, L, L, -1)
+        uv = torch.tanh(self.selection_uv(torch.cat((u, v), dim=-1)))
+        selection_logits = torch.einsum('bijh,rh->birj', uv, self.rel_embedding.weight)
+        selection_logits = selection_logits.permute(0,1,3,2)
         if not is_test:
-            loss_rel = self.masked_BCEloss(data_item['mask_tokens'], rel_score_matrix, data_item['pred_rel_matrix'], self.weights_rel)  # 要把分类放在第二维度
+            loss_rel = self.masked_BCEloss(data_item['mask_tokens'], selection_logits, data_item['pred_rel_matrix'], self.weights_rel)  # 要把分类放在第二维度
             # loss_rel *= rel_score_prob.shape[1]
             # loss_rel = self.focal_loss(rel_score_prob, data_item['pred_rel_matrix'])
             # loss_rel *= rel_score_prob.shape[1]
         # rel_score_prob = rel_score_prob - (self.config.threshold_rel - 0.5)  # 超过了一定阈值之后才能判断关系
-        rel_score_prob = torch.sigmoid(rel_score_matrix)
+        rel_score_prob = torch.sigmoid(selection_logits)
         pred_rel = torch.round(rel_score_prob).to(torch.int64)
         if is_test:
             return pred_ner, pred_rel

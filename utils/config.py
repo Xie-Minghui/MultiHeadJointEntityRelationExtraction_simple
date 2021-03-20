@@ -60,6 +60,7 @@ class Config:
         self.threshold_rel = 0.95  # 从0.7到0.95
         self.teach_rate = 0.0
         self.checkpoint_path = '../models/'
+        self.rel_emb_size = 64
     
     def get_token_types(self):
         token_type_bio = []
