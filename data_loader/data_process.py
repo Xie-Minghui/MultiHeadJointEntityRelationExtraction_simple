@@ -18,7 +18,7 @@ import json
 import torch
 import copy
 from utils.config import Config, USE_CUDA
-import numpy as np
+import codecs
 
 
 class ModelDataPreparation:
@@ -113,14 +113,20 @@ class ModelDataPreparation:
         #     json.dump(self.token_type2id, f, ensure_ascii=False)
         # with open('rel2id.json', 'w', encoding='utf-8') as f:
         #     json.dump(self.rel2id, f, ensure_ascii=False)
+        # self.token2id = {}
+        # with open(self.config.vocab_file, 'r', encoding='utf-8') as f:
+        #     cnt = 0
+        #     for line in f:
+        #         line = line.rstrip().split()
+        #         self.token2id[line[0]] = cnt
+        #         cnt += 1
+        # self.token2id[' '] = cnt
         self.token2id = {}
-        with open(self.config.vocab_file, 'r', encoding='utf-8') as f:
+        with codecs.open('../data/vec.txt', 'r', encoding='utf-8') as f:
             cnt = 0
-            for line in f:
-                line = line.rstrip().split()
-                self.token2id[line[0]] = cnt
+            for line in f.readlines():
+                self.token2id[line.split()[0]] = cnt
                 cnt += 1
-        self.token2id[' '] = cnt
     
     def get_data(self, file_path, is_test=False):
         data = []
@@ -161,9 +167,6 @@ class ModelDataPreparation:
                             rel_tmp.append(self.rel2id[y])
                         predict_rel_id_tmp.append(rel_tmp)
                     item['predict_rel_list'] = predict_rel_id_tmp
-                # item['rel_predct_matrix' ] = self._get_multiple_predicate_matrix(item['predict_rel_list'],
-                #                                                                  item['predict_location_list'],
-                #                                                                  )
                 item['text'] = ''.join(text_tokened)  # 保存消除异常词汇的文本
                 item['spo_list'] = data_item['spo_list']
                 item['token_type_origin'] = token_type_origin
@@ -178,11 +181,12 @@ class ModelDataPreparation:
             dataset=dataset,
             batch_size=self.config.batch_size,
             collate_fn=dataset.collate_fn,
+            shuffle=False,
             drop_last=True
         )
         return data_loader
          
-    def get_train_dev_data(self, path_train, path_dev=None, path_test=None):
+    def get_train_dev_data(self, path_train=None, path_dev=None, path_test=None):
         train_loader, dev_loader, test_loader = None, None, None
         if path_train is not None:
             train_loader = self.get_data(path_train)
@@ -290,9 +294,6 @@ class Dataset(torch.utils.data.Dataset):
             pred_rel_matrix = self._get_multiple_predicate_matrix(item_info['predict_rel_list'],
                                                                   item_info['predict_location_list'],
                                                                   max_seq_length)
-        # tmp = np.array(pred_rel_matrix)
-        # np.savetxt('rel_matrix.txt', pred_rel_matrix[0])
-        # convert to contiguous and cuda
         if USE_CUDA:
             text_tokened = text_tokened.contiguous().cuda()
             mask_tokens = mask_tokens.contiguous().cuda()
@@ -313,7 +314,7 @@ class Dataset(torch.utils.data.Dataset):
                 predict_location_list = predict_location_list.contiguous()
                 pred_rel_matrix = pred_rel_matrix.contiguous()
 
-        data_info = {'pred_rel_matrix': pred_rel_matrix, "mask_tokens": mask_tokens.to(torch.uint8)}
+        data_info = {'pred_rel_matrix': pred_rel_matrix, "mask_tokens": mask_tokens.to(torch.bool)}
         data_info['text'] = item_info['text']
         data_info['spo_list'] = item_info['spo_list']
         data_info['token_type_origin'] = item_info['token_type_origin']
@@ -326,12 +327,6 @@ class Dataset(torch.utils.data.Dataset):
                 data_info[key] = locals()[key]
         
         return data_info
-        
-# def _cuda(x):
-#     if torch.cuda.is_available():
-#         return x.cuda()
-#     else:
-#         return x
 
 
 if __name__ == '__main__':
@@ -340,17 +335,3 @@ if __name__ == '__main__':
     train_loader, dev_loader, test_loader = process.get_train_dev_data('../data/small.json')
     # train_loader, dev_loader, test_loader = process.get_train_dev_data('../data/train_data_small.json')
     print(train_loader)
-    for item in train_loader:
-        # print(type(item['token_type_list'][0]))
-        # print(item['token_type_list'][0].shape)
-        #
-        # print(item['predict_rel_list'][0])
-        # print(type(item['predict_rel_list'][0][0]))
-        # print(item['predict_rel_list'][0].shape)
-        for i in range(item['pred_rel_matrix'].shape[0]):
-            for j in range(item['pred_rel_matrix'].shape[1]):
-                for k in range(item['pred_rel_matrix'].shape[2]):
-                    if item['pred_rel_matrix'][i, j, k] > 0.1 or item['pred_rel_matrix'][i, j, k] < -0.1:
-                        print(i, j, k)
-                        print(item['pred_rel_matrix'][i, j, k])
-                        print("yes man")

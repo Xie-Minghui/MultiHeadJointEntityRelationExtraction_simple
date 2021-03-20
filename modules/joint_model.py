@@ -22,7 +22,7 @@ def setup_seed(seed):
 
 
 class JointModel(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, embedding_pre=None):
         super().__init__()
         setup_seed(1)
         
@@ -34,8 +34,12 @@ class JointModel(nn.Module):
         self.layer_size = config.layer_size  # self.hidden_dim, 之前这里没有改
         self.num_token_type = config.num_token_type  # 实体类型的综述
         self.config = config
-        
-        self.word_embedding = nn.Embedding(config.vocab_size, config.embedding_dim)
+        if embedding_pre is not None:
+            print("use pretrained embeddings")
+            self.word_embedding = nn.Embedding.from_pretrained(torch.FloatTensor(embedding_pre), freeze=False)
+        else:
+            self.word_embedding = nn.Embedding(config.vocab_size, config.embedding_dim, padding_idx=config.pad_token_id)
+        # self.word_embedding = nn.Embedding(config.vocab_size, config.embedding_dim)
         self.token_type_embedding = nn.Embedding(config.num_token_type, config.token_type_dim)
         self.gru = nn.GRU(config.embedding_dim, config.hidden_dim_lstm, num_layers=config.num_layers, batch_first=True,
                           bidirectional=True)
@@ -70,9 +74,9 @@ class JointModel(nn.Module):
     def get_ner_score(self, output_lstm):
         
         res = torch.matmul(output_lstm, self.U_ner.transpose(-1, -2)) + self.b_s_ner # [seq_len, batch, self.layer_size]
-        m = nn.Hardtanh()
-        # res = torch.tanh(res)
-        res = m(res)
+        # m = nn.Hardtanh()
+        res = torch.tanh(res)
+        # res = m(res)
         # res = F.leaky_relu(res,  negative_slope=0.01)
         if self.config.use_dropout:
             res = self.dropout_ner_layer(res)
@@ -112,7 +116,7 @@ class JointModel(nn.Module):
         #     res = self.dropout_head_layer(res)
         return res
     
-    def forward(self, data_item, is_test=False, hidden_init=None):
+    def forward(self, data_item, is_test=False):
         # 因为不是多跳机制，所以hidden_init不能继承之前的最终隐含态
         '''
         

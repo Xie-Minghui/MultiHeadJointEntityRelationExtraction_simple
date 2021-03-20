@@ -26,9 +26,7 @@ from seqeval.metrics import accuracy_score
 from seqeval.metrics import recall_score
 from seqeval.metrics import classification_report
 import numpy as np
-# if torch.cuda.is_available():
-#     USE_CUDA = True
-
+import codecs
 
 class Trainer:
     def __init__(self,
@@ -81,8 +79,8 @@ class Trainer:
                 loss_rel_total += loss_rel
                 f1_ner_total += f1_ner
                 
-            # if (epoch+1) % 1 == 0:
-            #     self.predict_sample()
+            if (epoch+1) % 1 == 0:
+                self.predict_sample()
             print("train ner loss: {0}, rel loss: {1}, f1 score: {2}".format(loss_ner_total/self.num_sample_total, loss_rel_total/self.num_sample_total,
                                                                         f1_ner_total/self.num_sample_total*self.config.batch_size))
             # pbar.set_description('TRAIN LOSS: {}'.format(loss_total/self.num_sample_total))
@@ -208,16 +206,41 @@ class Trainer:
         
         return subject_all, object_all, rel_all
 
-            
-        
+def get_embedding_pre():
+
+    word2id = {}
+    with codecs.open('../data/vec.txt', 'r', encoding='utf-8') as f:
+        cnt = 0
+        for line in f.readlines():
+            word2id[line.split()[0]] = cnt
+            cnt += 1
+
+    word2vec = {}
+    with codecs.open('../data/vec.txt', 'r', encoding='utf-8') as f:
+        for line in f.readlines():
+            word2vec[line.split()[0]] = list(map(eval, line.split()[1:]))
+        unkown_pre = []
+        unkown_pre.extend([1] * 100)
+    embedding_pre = []
+    embedding_pre.append(unkown_pre)
+    for word in word2id:
+        if word in word2vec:
+            embedding_pre.append(word2vec[word])
+        else:
+            embedding_pre.append(unkown_pre)
+    embedding_pre = np.array(embedding_pre)
+    return embedding_pre
+
+
 if __name__ == '__main__':
     config = Config()
-    model = JointModel(config)
+    embedding_pre = get_embedding_pre()
     data_processor = ModelDataPreparation(config)
     train_loader, dev_loader, test_loader = data_processor.get_train_dev_data(
-        '../data/train_small.json',
+        '../data/train_data_small.json',
     '../data/dev_small.json',
     '../data/predict.json')
+    model = JointModel(config, embedding_pre)
     # train_loader, dev_loader, test_loader = data_processor.get_train_dev_data('../data/train_data_small.json')
     trainer = Trainer(model, config, train_loader, dev_loader, test_loader, data_processor.token2id)
     trainer.train()
