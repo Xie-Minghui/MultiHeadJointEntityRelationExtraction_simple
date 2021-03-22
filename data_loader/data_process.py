@@ -128,13 +128,15 @@ class ModelDataPreparation:
                 self.token2id[line.split()[0]] = cnt
                 cnt += 1
     
-    def get_data(self, file_path, is_test=False):
+    def get_data(self, file_path, is_test=False, is_eval=False):
         data = []
         cnt = 0
         with open(file_path, 'r', encoding='utf-8') as f:
             for line in f:
                 cnt += 1
                 if cnt > self.config.num_sample:
+                    break
+                if is_eval and cnt > self.config.num_sample_eval:
                     break
                 data_item = json.loads(line)
                 if not is_test:
@@ -191,7 +193,7 @@ class ModelDataPreparation:
         if path_train is not None:
             train_loader = self.get_data(path_train)
         if path_dev is not None:
-            dev_loader = self.get_data(path_dev)
+            dev_loader = self.get_data(path_dev, is_eval=True)
         if path_test is not None:
             test_loader = self.get_data(path_test, is_test=True)
         

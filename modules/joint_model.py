@@ -129,7 +129,7 @@ class JointModel(nn.Module):
     #     #     res = self.dropout_head_layer(res)
     #     return res
     
-    def forward(self, data_item, is_test=False):
+    def forward(self, data_item, is_test=False, is_eval=False):
         # 因为不是多跳机制，所以hidden_init不能继承之前的最终隐含态
         '''
         
@@ -164,7 +164,7 @@ class JointModel(nn.Module):
         pred_ner = self.crf_model.decode(ner_score)  # , mask=data_item['mask_tokens']
         
         #--------------------------Relation
-        if not is_test and torch.rand(1) > self.config.teach_rate:
+        if not is_test and torch.rand(1) > self.config.teach_rate and not is_eval:
             labels = data_item['token_type_list']
         else:
             if USE_CUDA:

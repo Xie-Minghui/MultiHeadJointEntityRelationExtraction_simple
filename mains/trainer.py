@@ -138,7 +138,7 @@ class Trainer:
         loss_total, loss_ner_total, loss_rel_total, f1_ner_total, correct_score_total = 0, 0, 0, 0, 0
         samle_num = len(self.dev_dataset) * self.config.batch_size
         for i, data_item in pbar_dev:
-            loss_ner, loss_rel, pred_ner, pred_rel = self.model(data_item)
+            loss_ner, loss_rel, pred_ner, pred_rel = self.model(data_item, is_eval=True)
             pred_token_type = self.restore_ner(pred_ner, data_item['mask_tokens'])
             f1_ner = f1_score(data_item['token_type_origin'], pred_token_type)
             f1_ner_total += f1_ner

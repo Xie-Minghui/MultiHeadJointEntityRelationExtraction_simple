@@ -50,6 +50,7 @@ class Config:
         self.vocab_file = '../data/vocab.txt'
         self.max_seq_length = 256
         self.num_sample = 20480
+        self.num_sample_eval = 96
 
         self.dropout_embedding = 0.1  # 从0.2到0.1
         self.dropout_lstm = 0.1
