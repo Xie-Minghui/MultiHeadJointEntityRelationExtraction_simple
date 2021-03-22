@@ -71,7 +71,7 @@ class Trainer:
         for epoch in range(self.config.epochs):
             print("Epoch: {}".format(epoch))
             pbar = tqdm(enumerate(self.train_dataset), total=len(self.train_dataset))
-            loss_total, loss_ner_total, loss_rel_total, f1_ner_total = 0, 0, 0, 0
+            loss_total, loss_ner_total, loss_rel_total, f1_ner_total, correct_score_total = 0, 0, 0, 0, 0
             for i, data_item in pbar:
                 loss_ner, loss_rel, pred_ner, pred_rel, f1_ner = self.train_batch(data_item)
 
@@ -80,10 +80,20 @@ class Trainer:
                 loss_rel_total += loss_rel
                 f1_ner_total += f1_ner
                 
+                pred_rel_max = -torch.argmax(pred_rel, dim=-1)
+                one = torch.ones_like(pred_rel_max)
+                pred_rel_max = torch.where(pred_rel_max>-0.5, one, pred_rel_max)
+                pred_rel_max = -pred_rel_max
+                correct = torch.eq(pred_rel_max, data_item['pred_rel_matrix'].data).cpu().sum().numpy()
+                # correct = torch.sum(correct)
+                num_non_zero = data_item['pred_rel_matrix'].nonzero().size(0)
+                correct_score = correct / num_non_zero
+                correct_score_total += correct_score
+                
             if (epoch+1) % 1 == 0:
                 self.predict_sample()
-            print("train ner loss: {0}, rel loss: {1}, f1 score: {2}".format(loss_ner_total/self.num_sample_total, loss_rel_total/self.num_sample_total,
-                                                                        f1_ner_total/self.num_sample_total*self.config.batch_size))
+            print("train ner loss: {0}, rel loss: {1}, f1 score: {2}, precission score: {3}".format(loss_ner_total/self.num_sample_total, loss_rel_total/self.num_sample_total,
+                    f1_ner_total/self.num_sample_total*self.config.batch_size, correct_score_total / len(self.train_dataset)))
             # pbar.set_description('TRAIN LOSS: {}'.format(loss_total/self.num_sample_total))
             if (epoch+1) % 1 == 0:
                 self.evaluate()
@@ -92,7 +102,7 @@ class Trainer:
                     'epoch': epoch+1, 'state_dict': model.state_dict(), 'f1_best': f1_ner_total,
                     'optimizer': self.optimizer.state_dict(),
                 },
-                self.config.checkpoint_path + str(epoch) + 'm-' + 'f'+str("%.2f"%f1_ner_total) + 'n'+str("%.2f"%loss_ner_total) +
+                self.config.checkpoint_path + str(epoch) + 'm-' + 'p' + str("%.2f"%correct_score_total) + 'f'+str("%.2f"%f1_ner_total) + 'n'+str("%.2f"%loss_ner_total) +
                 'r'+str("%.2f"%loss_rel_total) + '.pth'
                 )
     
@@ -124,7 +134,7 @@ class Trainer:
         self.model.train(False)
         pbar_dev = tqdm(enumerate(self.dev_dataset), total=len(self.dev_dataset))
         
-        loss_total, loss_ner_total, loss_rel_total, f1_ner_total = 0, 0, 0, 0
+        loss_total, loss_ner_total, loss_rel_total, f1_ner_total, correct_score_total = 0, 0, 0, 0, 0
         samle_num = len(self.dev_dataset) * self.config.batch_size
         for i, data_item in pbar_dev:
             loss_ner, loss_rel, pred_ner, pred_rel = self.model(data_item)
@@ -133,8 +143,19 @@ class Trainer:
             f1_ner_total += f1_ner
             loss_ner_total += loss_ner
             loss_rel_total += loss_rel
+
+            pred_rel_max = -torch.argmax(pred_rel, dim=-1)
+            one = torch.ones_like(pred_rel_max)
+            pred_rel_max = torch.where(pred_rel_max > -0.5, one, pred_rel_max)
+            pred_rel_max = -pred_rel_max
+            correct = torch.eq(pred_rel_max, data_item['pred_rel_matrix'].data).cpu().sum().numpy()
+            # correct = torch.sum(correct)
+            num_non_zero = data_item['pred_rel_matrix'].nonzero().size(0)
+            correct_score = correct / num_non_zero
+            correct_score_total += correct_score
             # loss_total += (loss_ner + loss_rel)
-        print("eval ner loss: {0}, rel loss: {1}, f1 score: {2}".format(loss_ner_total/samle_num, loss_rel_total/samle_num, f1_ner_total/len(self.dev_dataset)))
+        print("eval ner loss: {0}, rel loss: {1}, f1 score: {2}, precission score: {3}".format(loss_ner_total/samle_num,
+            loss_rel_total/samle_num, f1_ner_total/len(self.dev_dataset), correct_score_total/ len(self.dev_dataset)))
         self.model.train(True)
         
         return loss_total / (len(self.dev_dataset) * self.config.batch_size)
@@ -167,7 +188,6 @@ class Trainer:
             for j in range(length):
                 for k in range(pred_rel.shape[2]):
                     if math.fabs(pred_rel[i, j, k] - 1.0) < 0.1:
-                        # print(i, j, k, self.id2rel[k])
                         if k != 0:
                             pred_rel_list.append([i, j, self.id2rel[k]])
         token_pred = []
