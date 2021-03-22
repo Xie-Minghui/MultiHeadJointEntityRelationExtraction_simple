@@ -34,7 +34,7 @@ class JointModel(nn.Module):
         self.layer_size = config.layer_size  # self.hidden_dim, 之前这里没有改
         self.num_token_type = config.num_token_type  # 实体类型的综述
         self.config = config
-        if embedding_pre is not None:
+        if embedding_pre is not None:  # 测试不加载词向量的情况
             print("use pretrained embeddings")
             self.word_embedding = nn.Embedding.from_pretrained(torch.FloatTensor(embedding_pre), freeze=False)
         else:

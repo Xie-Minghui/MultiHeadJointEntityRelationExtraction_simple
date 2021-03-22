@@ -102,8 +102,9 @@ class Trainer:
                     'epoch': epoch+1, 'state_dict': model.state_dict(), 'f1_best': f1_ner_total,
                     'optimizer': self.optimizer.state_dict(),
                 },
-                self.config.checkpoint_path + str(epoch) + 'm-' + 'p' + str("%.2f"%correct_score_total) + 'f'+str("%.2f"%f1_ner_total) + 'n'+str("%.2f"%loss_ner_total) +
-                'r'+str("%.2f"%loss_rel_total) + '.pth'
+                self.config.checkpoint_path + str(epoch) + 'm-' + 'p' + str("%.2f"%(correct_score_total / len(self.train_dataset))) +
+                'f'+str("%.2f"%(f1_ner_total/self.num_sample_total*self.config.batch_size)) + 'n'+str("%.2f"%(loss_ner_total/self.num_sample_total)) +
+                'r'+str("%.2f"%(loss_rel_total/self.num_sample_total)) + '.pth'
                 )
     
     def train_batch(self, data_item):
@@ -176,20 +177,32 @@ class Trainer:
         print('STARTING TESTING...')
         self.model.train(False)
         pbar = tqdm(enumerate(self.test_dataset), total=len(self.test_dataset))
+        data_item0 = None
         for i, data_item in pbar:
-
             pred_ner, pred_rel = self.model(data_item, is_test=True)
+            if random.random() > 0.7:
+                data_item0 = data_item
+                pred_ner0, pred_rel0 = pred_ner, pred_rel
+        
+        if data_item0 is None:
+            data_item0 = data_item
+            pred_ner0, pred_rel0 = pred_ner, pred_rel
         x = random.randint(0, 31)
-        data_item0 = data_item
-        pred_ner, pred_rel = pred_ner[x], pred_rel[x]
+        pred_ner, pred_rel = pred_ner0[x], pred_rel0[x]
         pred_rel_list = []
-        length = len([c for c in data_item['text'][x]])
-        for i in range(length):
-            for j in range(length):
-                for k in range(pred_rel.shape[2]):
-                    if math.fabs(pred_rel[i, j, k] - 1.0) < 0.1:
-                        if k != 0:
-                            pred_rel_list.append([i, j, self.id2rel[k]])
+        length = len([c for c in data_item0['text'][x]])
+        # for i in range(length):
+        #     for j in range(length):
+        #         for k in range(pred_rel.shape[2]):
+        #             if math.fabs(pred_rel[i, j, k] - 1.0) < 0.1:
+        #                 if k != 0:
+        #                     pred_rel_list.append([i, j, self.id2rel[k]])
+        loc = pred_rel.nonzero()
+        for item in loc:
+            item = item.cpu().numpy()
+            if math.fabs(item[2]) < 0.1:
+                continue
+            pred_rel_list.append([item[0], item[1], self.id2rel[item[2]]])
         token_pred = []
         cnt = 0
         for i in pred_ner:
@@ -232,7 +245,7 @@ class Trainer:
             s_start, o_start = item[0], item[1]
             if s_start == o_start:  # 防止自己和自己构成关系
                 continue
-            if token_pred[s_start][0] != 'B' or token_pred[o_start][0] != 'B' or s_start > len(text) or o_start > len(text):
+            if s_start >= len(text) or o_start >= len(text) or token_pred[s_start][0] != 'B' or token_pred[o_start][0] != 'B':
                 continue
             subject.append(text[s_start])
             object.append(text[o_start])
@@ -287,8 +300,8 @@ if __name__ == '__main__':
     embedding_pre = get_embedding_pre()
     data_processor = ModelDataPreparation(config)
     train_loader, dev_loader, test_loader = data_processor.get_train_dev_data(
-        '../data/train_data_small.json',
-    '../data/dev_small.json',
+        '../data/train_data.json',
+    '../data/dev_data.json',
     '../data/predict.json')
     model = JointModel(config, embedding_pre)
     # train_loader, dev_loader, test_loader = data_processor.get_train_dev_data('../data/train_data_small.json')

@@ -61,6 +61,7 @@ class Config:
         self.teach_rate = 0.0
         self.checkpoint_path = '../models/'
         self.rel_emb_size = 64
+        self.pad_token_id = 0
     
     def get_token_types(self):
         token_type_bio = []

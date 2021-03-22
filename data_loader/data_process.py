@@ -181,7 +181,7 @@ class ModelDataPreparation:
             dataset=dataset,
             batch_size=self.config.batch_size,
             collate_fn=dataset.collate_fn,
-            shuffle=True,
+            shuffle=False,
             drop_last=True
         )
         return data_loader
