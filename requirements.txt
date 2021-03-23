@@ -1,0 +1,6 @@
+torch==1.4.0+cu100
+pytorch-crf==0.7.2
+transformers==4.3.3
+tqdm==4.59.0
+seqeval==0.0.10
+numpy
