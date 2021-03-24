@@ -19,13 +19,13 @@ else:
 
 class Config:
     def __init__(self,
-                 lr=0.001,
+                 lr=0.0005,
                  epochs=100,
                  vocab_size=22000,
                  embedding_dim=100,
                  hidden_dim_lstm=64,
                  num_layers=3,  # 上去会超过内存
-                 batch_size=32,
+                 batch_size=16,
                  layer_size=64,
                  token_type_dim=12
                  ):

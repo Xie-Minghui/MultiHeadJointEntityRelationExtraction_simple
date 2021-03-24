@@ -1,4 +1,6 @@
 torch==1.4.0+cu100
+cuda=10.0
+cudnn=7603
 pytorch-crf==0.7.2
 transformers==4.3.3
 tqdm==4.59.0

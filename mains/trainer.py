@@ -64,10 +64,23 @@ class Trainer:
         self.id2token_type = {}
         for i, token_type in enumerate(self.config.token_types):
             self.id2token_type[i] = token_type
+    
+    def print_model(self):
+        for name, parameters in self.model.named_parameters():
+            print(name, " : ", parameters.size())
+        
+        print("Total")
+        self.get_parameters_number()
+    
+    def get_parameters_number(self):
+        total_num = sum(p.numel() for p in self.model.parameters())
+        trainable_num = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+        print("Total number of parameters is {0}M, Trainable number is {1}M".format(total_num/1e6, trainable_num/1e6))
         
     def train(self):
         print('STARTING TRAIN...')
         f1_ner_total_best = 0
+        self.print_model()
         for epoch in range(self.config.epochs):
             print("Epoch: {}".format(epoch))
             pbar = tqdm(enumerate(self.train_dataset), total=len(self.train_dataset))
@@ -300,8 +313,8 @@ if __name__ == '__main__':
     embedding_pre = get_embedding_pre()
     data_processor = ModelDataPreparation(config)
     train_loader, dev_loader, test_loader = data_processor.get_train_dev_data(
-        '../data/train_data.json',
-    '../data/dev_data.json',
+        '../data/dev_small.json',
+    '../data/dev_small.json',
     '../data/predict.json')
     model = JointModel(config, embedding_pre)
     # train_loader, dev_loader, test_loader = data_processor.get_train_dev_data('../data/train_data_small.json')
