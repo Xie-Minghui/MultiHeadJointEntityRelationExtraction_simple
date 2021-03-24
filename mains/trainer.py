@@ -313,7 +313,7 @@ if __name__ == '__main__':
     embedding_pre = get_embedding_pre()
     data_processor = ModelDataPreparation(config)
     train_loader, dev_loader, test_loader = data_processor.get_train_dev_data(
-        '../data/dev_small.json',
+        '../data/dev_data.json',
     '../data/dev_small.json',
     '../data/predict.json')
     model = JointModel(config, embedding_pre)
