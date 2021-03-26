@@ -63,6 +63,10 @@ class Config:
         self.checkpoint_path = '../models/'
         self.rel_emb_size = 64
         self.pad_token_id = 0
+        
+        self.use_adv = False
+        self.alpha = 1e-3
+        self.gamma = 0.5
     
     def get_token_types(self):
         token_type_bio = []
