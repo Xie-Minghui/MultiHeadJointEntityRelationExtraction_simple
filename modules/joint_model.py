@@ -138,6 +138,7 @@ class JointModel(nn.Module):
         :return:
         :rtype:
         '''
+        # [batch_size, seq_len, embedding_dim]
         embeddings = self.word_embedding(data_item['text_tokened'].to(torch.int64))  # 要转化为int64
         if self.config.use_dropout:
             embeddings = self.dropout_embedding_layer(embeddings)
@@ -151,6 +152,7 @@ class JointModel(nn.Module):
         # if self.config.use_dropout:
         #     output_lstm = self.dropout_lstm_layer(output_lstm)  # 用了效果变差
         # ner_score = self.get_ner_score(output_lstm)
+        # [batch_size, seq_len, num_token_type]
         ner_score = self.ner_layer(output_lstm)
         # 下面是使用CFR
         
@@ -160,7 +162,7 @@ class JointModel(nn.Module):
             log_likelihood = self.crf_model(ner_score, data_item['token_type_list'].to(torch.int64),
                                        mask=data_item['mask_tokens'])
             loss_ner = -log_likelihood
-            
+        # [batch_size, seq_len]
         pred_ner = self.crf_model.decode(ner_score)  # , mask=data_item['mask_tokens']
         
         #--------------------------Relation
@@ -171,6 +173,7 @@ class JointModel(nn.Module):
                 labels = torch.Tensor(pred_ner).cuda()
             else:
                 labels = torch.Tensor(pred_ner)
+        # [batch_size, seq_len, token_type_dim]
         label_embeddings = self.token_type_embedding(labels.to(torch.int64))
         rel_input = torch.cat((output_lstm, label_embeddings), 2)
         # rel_score_matrix = self.getHeadSelectionScores(rel_input)  # [batch, seq_len, seq_len, num_relation]
