@@ -243,9 +243,8 @@ class Trainer:
             token_pred.append(self.id2token_type[i])
             cnt += 1
         print("token_pred: {}".format(token_pred))
-        print("token_type_origin: {}".format(data_item0['token_type_origin'][0]))
         print(data_item0['text'][x])
-        print(data_item0['spo_list'][x])
+        # print(data_item0['spo_list'][x])
         print("pred_rel_list: {}".format(pred_rel_list))
         self.model.train(True)
         rel_triple = self.convert2StandardOutput(data_item0, x, token_pred, pred_rel_list)

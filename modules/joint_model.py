@@ -178,11 +178,11 @@ class JointModel(nn.Module):
         rel_input = torch.cat((output_lstm, label_embeddings), 2)
         # rel_score_matrix = self.getHeadSelectionScores(rel_input)  # [batch, seq_len, seq_len, num_relation]
         B, L, H = rel_input.size()
-        u = torch.tanh(self.selection_u(rel_input)).unsqueeze(1).expand(B, L, L, -1)  # (B,L,L,R)
-        v = torch.tanh(self.selection_v(rel_input)).unsqueeze(2).expand(B, L, L, -1)
+        # u = torch.tanh(self.selection_u(rel_input)).unsqueeze(1).expand(B, L, L, -1)  # (B,L,L,R)
+        # v = torch.tanh(self.selection_v(rel_input)).unsqueeze(2).expand(B, L, L, -1)
         # 测试去除tanh的情况，因为论文官方代码没有添加tanh
-        # u = self.selection_u(rel_input).unsqueeze(1).expand(B, L, L, -1)  # (B,L,L,R)
-        # v = self.selection_v(rel_input).unsqueeze(2).expand(B, L, L, -1)
+        u = self.selection_u(rel_input).unsqueeze(1).expand(B, L, L, -1)  # (B,L,L,R)
+        v = self.selection_v(rel_input).unsqueeze(2).expand(B, L, L, -1)
         uv = torch.tanh(self.selection_uv(torch.cat((u, v), dim=-1)))
         selection_logits = torch.einsum('bijh,rh->birj', uv, self.rel_embedding.weight)
         selection_logits = selection_logits.permute(0,1,3,2)
