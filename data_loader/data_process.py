@@ -169,9 +169,10 @@ class ModelDataPreparation:
                             rel_tmp.append(self.rel2id[y])
                         predict_rel_id_tmp.append(rel_tmp)
                     item['predict_rel_list'] = predict_rel_id_tmp
+                    item['spo_list'] = data_item['spo_list']
+                    item['token_type_origin'] = token_type_origin
                 item['text'] = ''.join(text_tokened)  # 保存消除异常词汇的文本
-                item['spo_list'] = data_item['spo_list']
-                item['token_type_origin'] = token_type_origin
+                
                 data.append(item)
                 # data.append(data_item['text'])
                 # data.append(data_item['spo_list'])
@@ -221,8 +222,9 @@ class Dataset(torch.utils.data.Dataset):
                 data_info[key] = locals()[key]
 
         data_info['text'] = self.data[index]['text']
-        data_info['spo_list'] = self.data[index]['spo_list']
-        data_info['token_type_origin'] = self.data[index]['token_type_origin']
+        if not self.is_test:
+            data_info['spo_list'] = self.data[index]['spo_list']
+            data_info['token_type_origin'] = self.data[index]['token_type_origin']
         return data_info
     
     def __len__(self):
@@ -318,8 +320,9 @@ class Dataset(torch.utils.data.Dataset):
 
         data_info = {'pred_rel_matrix': pred_rel_matrix, "mask_tokens": mask_tokens.to(torch.bool)}
         data_info['text'] = item_info['text']
-        data_info['spo_list'] = item_info['spo_list']
-        data_info['token_type_origin'] = item_info['token_type_origin']
+        if not self.is_test:
+            data_info['spo_list'] = item_info['spo_list']
+            data_info['token_type_origin'] = item_info['token_type_origin']
         for key in item_info.keys():
             # try:
             #     data_info[key] = locals()[key]

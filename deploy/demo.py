@@ -9,6 +9,8 @@ file description:：
 
 """
 import torch
+import sys
+sys.path.append('/home/xieminghui/Projects/MultiHeadJointEntityRelationExtraction_simple/')  # 添加路径
 
 from data_loader.data_process import ModelDataPreparation
 from mains.trainer import Trainer
@@ -17,7 +19,7 @@ from modules.joint_model import JointModel
 
 def test():
     path_test = './test.json'
-    PATH_MODEL = '../models/36m-p578.70f550.56n35048.66r2654.46.pth'
+    PATH_MODEL = '../models/27m-p0.83f0.83n2.32r0.66.pth'
     config = Config()
     config.batch_size = 1
     model = JointModel(config)
@@ -30,7 +32,9 @@ def test():
     rel_triple = trainer.predict()
     print("提取得到的关系三元组:\n {}".format(rel_triple))
     
-    
+
+if __name__ == '__main__':
+    test()
     
     
     

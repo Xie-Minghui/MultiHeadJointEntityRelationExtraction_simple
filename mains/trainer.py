@@ -52,8 +52,6 @@ class Trainer:
                                                                    patience=8, min_lr=1e-5, verbose=True)
         if USE_CUDA:
             self.model = self.model.cuda()
-            
-        self.num_sample_total = len(train_loader) * self.config.batch_size
 
         self.get_id2rel()
 
@@ -66,8 +64,8 @@ class Trainer:
             self.id2token_type[i] = token_type
     
     def print_model(self):
-        for name, parameters in self.model.named_parameters():
-            print(name, " : ", parameters.size())
+        # for name, parameters in self.model.named_parameters():
+        #     print(name, " : ", parameters.size())
         
         print("Total")
         self.get_parameters_number()
@@ -79,6 +77,7 @@ class Trainer:
         
     def train(self):
         print('STARTING TRAIN...')
+        self.num_sample_total = len(train_loader) * self.config.batch_size
         f1_ner_total_best = 0
         self.print_model()
         for epoch in range(self.config.epochs):
@@ -181,6 +180,7 @@ class Trainer:
         for i, data_item in pbar:
             pred_ner, pred_rel = self.model(data_item, is_test=True)
         length = len([c for c in data_item['text'][0]])  # 测试的时候只有一个样例
+        pred_ner, pred_rel = pred_ner[0], pred_rel[0]
         pred_rel_list = []
         loc = pred_rel.nonzero()
         for item in loc:
@@ -200,8 +200,8 @@ class Trainer:
         print("pred_rel_list: {}".format(pred_rel_list))
         self.model.train(True)
         rel_triple = self.convert2StandardOutput(data_item, 0, token_pred, pred_rel_list)
-        print("提取得到的关系三元组:\n {}".format(rel_triple))
-        
+        # print("提取得到的关系三元组:\n {}".format(rel_triple))
+        return rel_triple
 
     def predict_sample(self):
         print('STARTING TESTING...')
@@ -217,7 +217,7 @@ class Trainer:
         if data_item0 is None:
             data_item0 = data_item
             pred_ner0, pred_rel0 = pred_ner, pred_rel
-        x = random.randint(0, 31)
+        x = random.randint(0, 15)
         pred_ner, pred_rel = pred_ner0[x], pred_rel0[x]
         pred_rel_list = []
         length = len([c for c in data_item0['text'][x]])
@@ -315,9 +315,10 @@ if __name__ == '__main__':
     embedding_pre = get_embedding_pre()
     data_processor = ModelDataPreparation(config)
     train_loader, dev_loader, test_loader = data_processor.get_train_dev_data(
-        '../data/dev_data.json',
-    '../data/dev_small.json',
+        '../data/train_data.json',
+    '../data/dev_data.json',
     '../data/predict.json')
+    print(len(train_loader),len(dev_loader), len(test_loader))
     model = JointModel(config, embedding_pre)
     # train_loader, dev_loader, test_loader = data_processor.get_train_dev_data('../data/train_data_small.json')
     trainer = Trainer(model, config, train_loader, dev_loader, test_loader, data_processor.token2id)
