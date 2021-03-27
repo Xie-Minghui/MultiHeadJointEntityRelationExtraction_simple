@@ -21,7 +21,7 @@ class Config:
     def __init__(self,
                  lr=0.0005,
                  epochs=100,
-                 vocab_size=22000,
+                 vocab_size=16116,
                  embedding_dim=100,
                  hidden_dim_lstm=64,
                  num_layers=3,  # 上去会超过内存
@@ -49,8 +49,8 @@ class Config:
         self.num_token_type = len(self.token_types)
         self.vocab_file = '../data/vocab.txt'
         self.max_seq_length = 256
-        self.num_sample = 20480
-        self.num_sample_eval = 96
+        self.num_sample = 10240
+        self.num_sample_eval = 128
 
         self.dropout_embedding = 0.1  # 从0.2到0.1
         self.dropout_lstm = 0.1
@@ -59,7 +59,7 @@ class Config:
         self.dropout_ner = 0.1
         self.use_dropout = True
         self.threshold_rel = 0.9  # 从0.7到0.95
-        self.teach_rate = 0.0
+        self.teach_rate = 0.3
         self.checkpoint_path = '../models/'
         self.rel_emb_size = 64
         self.pad_token_id = 0

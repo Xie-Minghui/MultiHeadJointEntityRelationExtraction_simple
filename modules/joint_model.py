@@ -166,7 +166,7 @@ class JointModel(nn.Module):
         pred_ner = self.crf_model.decode(ner_score)  # , mask=data_item['mask_tokens']
         
         #--------------------------Relation
-        if not is_test and torch.rand(1) > self.config.teach_rate and not is_eval:
+        if not is_test and torch.rand(1) > self.config.teach_rate and not is_eval:  # 评估时不使用标签导致效果变差不少
             labels = data_item['token_type_list']
         else:
             if USE_CUDA:
@@ -180,6 +180,9 @@ class JointModel(nn.Module):
         B, L, H = rel_input.size()
         u = torch.tanh(self.selection_u(rel_input)).unsqueeze(1).expand(B, L, L, -1)  # (B,L,L,R)
         v = torch.tanh(self.selection_v(rel_input)).unsqueeze(2).expand(B, L, L, -1)
+        # 测试去除tanh的情况，因为论文官方代码没有添加tanh
+        # u = self.selection_u(rel_input).unsqueeze(1).expand(B, L, L, -1)  # (B,L,L,R)
+        # v = self.selection_v(rel_input).unsqueeze(2).expand(B, L, L, -1)
         uv = torch.tanh(self.selection_uv(torch.cat((u, v), dim=-1)))
         selection_logits = torch.einsum('bijh,rh->birj', uv, self.rel_embedding.weight)
         selection_logits = selection_logits.permute(0,1,3,2)
