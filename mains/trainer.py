@@ -179,29 +179,31 @@ class Trainer:
         pbar = tqdm(enumerate(self.test_dataset), total=len(self.test_dataset))
         for i, data_item in pbar:
             pred_ner, pred_rel = self.model(data_item, is_test=True)
-        length = len([c for c in data_item['text'][0]])  # 测试的时候只有一个样例
-        pred_ner, pred_rel = pred_ner[0], pred_rel[0]
-        pred_rel_list = []
+        # pred_ner, pred_rel = pred_ner[0], pred_rel[0]
+        pred_rel_list = [[] for _ in range(self.config.batch_size)]
         loc = pred_rel.nonzero()
         for item in loc:
             item = item.cpu().numpy()
-            if math.fabs(item[2]) < 0.1:
+            if math.fabs(item[3]) < 0.1:  # 排除空关系
                 continue
-            pred_rel_list.append([item[0], item[1], self.id2rel[item[2]]])
-        token_pred = []
-        cnt = 0
-        for i in pred_ner:
-            if cnt >= length:
-                break
-            token_pred.append(self.id2token_type[i])
-            cnt += 1
-        print("token_pred: {}".format(token_pred))
-        print(data_item['text'][0])
-        print("pred_rel_list: {}".format(pred_rel_list))
+            pred_rel_list[item[0]].append([item[1], item[2], self.id2rel[item[3]]])
+        texts = [text for text in data_item['text']]
+        lengths = [len([c for c in data_item['text'][i]]) for i in range(self.config.batch_size)] # 测试的时候只有一个样例
+        token_pred = [[] for _ in range(self.config.batch_size)]
+        for i in range(len(pred_ner)):
+            cnt = 0
+            for id in pred_ner[i]:
+                token_pred[i].append(self.id2token_type[id])
+                cnt += 1
+                if cnt >= lengths[i]:
+                    break
         self.model.train(True)
-        rel_triple = self.convert2StandardOutput(data_item, 0, token_pred, pred_rel_list)
+        rel_triple_list = []
+        for i in range(self.config.batch_size):
+            rel_triple = self.convert2StandardOutput(data_item, i, token_pred[i], pred_rel_list[i])
+            rel_triple_list.append(rel_triple)
         # print("提取得到的关系三元组:\n {}".format(rel_triple))
-        return rel_triple
+        return texts, token_pred, rel_triple_list
 
     def predict_sample(self):
         print('STARTING TESTING...')
@@ -269,6 +271,8 @@ class Trainer:
             while o_start < len(text) and (token_pred[o_start][0] == 'I'): #  or token_pred[o_start][0] == 'B'
                 object.append(text[o_start])
                 o_start += 1
+            subject = ''.join(subject)
+            object = ''.join(object)
             is_repeated = False
             if rel_all is not None:
                 for i in range(len(rel_all)):
@@ -276,8 +280,8 @@ class Trainer:
                         is_repeated = True
                         break
             if not is_repeated:
-                subject_all.append(''.join(subject))
-                object_all.append(''.join(object))
+                subject_all.append(subject)
+                object_all.append(object)
                 rel_all.append(item[2])
         rel_triple = [[] for _ in range(len(rel_all))]
         for i in range(len(rel_all)):
