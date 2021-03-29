@@ -65,6 +65,7 @@ class Config:
         self.pad_token_id = 0
         
         self.use_adv = False
+        self.use_attention = True
         self.alpha = 1e-3
         self.gamma = 0.5
     

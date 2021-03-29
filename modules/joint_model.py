@@ -74,29 +74,43 @@ class JointModel(nn.Module):
         # self.dropout_lstm_layer = torch.nn.Dropout(config.dropout_lstm)
         self.crf_model = CRF(self.num_token_type, batch_first=True)
         
-        self.ner_layer = nn.Linear(config.hidden_dim_lstm*2, config.num_token_type)
+        if self.config.use_attention:
+            self.ner_layer = nn.Linear(config.hidden_dim_lstm*2 + 1, config.num_token_type)
+            self.selection_u = nn.Linear(self.hidden_dim * 2 + self.config.token_type_dim + 1, config.rel_emb_size)
+            self.selection_v = nn.Linear(self.hidden_dim * 2 + self.config.token_type_dim + 1, config.rel_emb_size)
+        else:
+            self.ner_layer = nn.Linear(config.hidden_dim_lstm * 2, config.num_token_type)
+            self.selection_u = nn.Linear(self.hidden_dim * 2 + self.config.token_type_dim, config.rel_emb_size)
+            self.selection_v = nn.Linear(self.hidden_dim * 2 + self.config.token_type_dim, config.rel_emb_size)
         
-        self.selection_u = nn.Linear(self.hidden_dim * 2 + self.config.token_type_dim, config.rel_emb_size)
-        self.selection_v = nn.Linear(self.hidden_dim * 2 + self.config.token_type_dim, config.rel_emb_size)
         self.selection_uv = nn.Linear(2*config.rel_emb_size, config.rel_emb_size)
         
         # self.weights_loss = [100 for i in range(config.num_relations)]
         # self.weights_loss[0] = 1
         # self.focal_loss = Focal_loss(alpha=self.weights_loss, gamma=4, num_classes=config.num_relations)
+    
+    def atten_network(self, encoder_out, hidden_final):
+        # [batch, seq_len, hidden_dim_lstm]
+        out_squeeze = encoder_out[:, :, :self.config.hidden_dim_lstm] + encoder_out[:, :, self.config.hidden_dim_lstm:]
+        hidden_squeeze = torch.sum(hidden_final, dim=0)  # [1, batch, hidden_dim_lstm]
+        atten_score = torch.bmm(hidden_squeeze.transpose(0, 1), out_squeeze.transpose(-1, -2))  # [batch, 1, seq_len]
+        atten_weights = F.softmax(atten_score, dim=-1)
         
-    def get_ner_score(self, output_lstm):
+        return atten_weights.transpose(-1, -2)  # [batch, seq_len, 1]
         
-        res = torch.matmul(output_lstm, self.U_ner.transpose(-1, -2)) + self.b_s_ner # [seq_len, batch, self.layer_size]
-        # m = nn.Hardtanh()
-        res = torch.tanh(res)
-        # res = m(res)
-        # res = F.leaky_relu(res,  negative_slope=0.01)
-        if self.config.use_dropout:
-            res = self.dropout_ner_layer(res)
-            
-        ans = torch.matmul(res, self.V_ner.transpose(-1, -2)) + self.b_c_ner  # [seq_len, batch, num_token_type]
-        
-        return ans
+    # def get_ner_score(self, output_lstm):
+    #
+    #     res = torch.matmul(output_lstm, self.U_ner.transpose(-1, -2)) + self.b_s_ner # [seq_len, batch, self.layer_size]
+    #     # m = nn.Hardtanh()
+    #     res = torch.tanh(res)
+    #     # res = m(res)
+    #     # res = F.leaky_relu(res,  negative_slope=0.01)
+    #     if self.config.use_dropout:
+    #         res = self.dropout_ner_layer(res)
+    #
+    #     ans = torch.matmul(res, self.V_ner.transpose(-1, -2)) + self.b_c_ner  # [seq_len, batch, num_token_type]
+    #
+    #     return ans
     
     # def broadcasting(self, left, right):
     #     left = left.permute(1, 0, 2)
@@ -148,12 +162,18 @@ class JointModel(nn.Module):
         else:
             hidden_init = torch.randn(2 * self.num_layers, self.batch_size, self.hidden_dim)
         output_lstm, h_n =self.gru(embeddings, hidden_init)
+        atten_weights = self.atten_network(output_lstm, h_n)
         # output_lstm [batch, seq_len, 2*hidden_dim]  h_n [2*num_layers, batch, hidden_dim]
         # if self.config.use_dropout:
         #     output_lstm = self.dropout_lstm_layer(output_lstm)  # 用了效果变差
         # ner_score = self.get_ner_score(output_lstm)
         # [batch_size, seq_len, num_token_type]
-        ner_score = self.ner_layer(output_lstm)
+        # 添加attention权重的情况
+        if self.config.use_attention:
+            ner_input = torch.cat((output_lstm, atten_weights), 2)
+        else:
+            ner_input = output_lstm
+        ner_score = self.ner_layer(ner_input)
         # 下面是使用CFR
         
         if USE_CUDA:
@@ -175,7 +195,10 @@ class JointModel(nn.Module):
                 labels = torch.Tensor(pred_ner)
         # [batch_size, seq_len, token_type_dim]
         label_embeddings = self.token_type_embedding(labels.to(torch.int64))
-        rel_input = torch.cat((output_lstm, label_embeddings), 2)
+        if self.config.use_attention:
+            rel_input = torch.cat((output_lstm, label_embeddings, atten_weights), 2)
+        else:
+            rel_input = torch.cat((output_lstm, label_embeddings), 2)
         # rel_score_matrix = self.getHeadSelectionScores(rel_input)  # [batch, seq_len, seq_len, num_relation]
         B, L, H = rel_input.size()
         # u = torch.tanh(self.selection_u(rel_input)).unsqueeze(1).expand(B, L, L, -1)  # (B,L,L,R)
@@ -188,10 +211,7 @@ class JointModel(nn.Module):
         selection_logits = selection_logits.permute(0,1,3,2)
         if not is_test:
             loss_rel = self.masked_BCEloss(data_item['mask_tokens'], selection_logits, data_item['pred_rel_matrix'], self.weights_rel)  # 要把分类放在第二维度
-            # loss_rel *= rel_score_prob.shape[1]
             # loss_rel = self.focal_loss(rel_score_prob, data_item['pred_rel_matrix'])
-            # loss_rel *= rel_score_prob.shape[1]
-        # rel_score_prob = rel_score_prob - (self.config.threshold_rel - 0.5)  # 超过了一定阈值之后才能判断关系
         rel_score_prob = torch.sigmoid(selection_logits)
         rel_score_prob = rel_score_prob - (self.config.threshold_rel - 0.5)  # 超过了一定阈值之后才能判断关系
         pred_rel = torch.round(rel_score_prob).to(torch.int64)
@@ -199,11 +219,6 @@ class JointModel(nn.Module):
             return pred_ner, pred_rel
 
         return loss_ner, loss_rel, pred_ner, pred_rel
-        # pred_rel, loss_rel = None, 0
-        # if is_test:
-        #     return pred_ner, pred_rel
-        #
-        # return loss_ner, loss_rel, pred_ner, pred_rel
         
     def masked_BCEloss(self, mask, selection_logits, selection_gold, weights_rel):
         selection_mask = (mask.unsqueeze(2) *
