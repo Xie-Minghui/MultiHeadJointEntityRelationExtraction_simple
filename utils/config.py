@@ -50,7 +50,7 @@ class Config:
         self.vocab_file = '../data/vocab.txt'
         self.max_seq_length = 256
         self.num_sample = 20480
-        self.num_sample_eval = 128
+        self.num_sample_eval = 320
 
         self.dropout_embedding = 0.1  # 从0.2到0.1
         self.dropout_lstm = 0.1
@@ -59,7 +59,7 @@ class Config:
         self.dropout_ner = 0.1
         self.use_dropout = True
         self.threshold_rel = 0.9  # 从0.7到0.95
-        self.teach_rate = 0.3
+        self.teach_rate = 0.8
         self.checkpoint_path = '../models/'
         self.rel_emb_size = 64
         self.pad_token_id = 0

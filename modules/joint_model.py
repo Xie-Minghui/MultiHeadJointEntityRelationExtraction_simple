@@ -78,6 +78,8 @@ class JointModel(nn.Module):
             self.ner_layer = nn.Linear(config.hidden_dim_lstm*2 + 1, config.num_token_type)
             self.selection_u = nn.Linear(self.hidden_dim * 2 + self.config.token_type_dim + 1, config.rel_emb_size)
             self.selection_v = nn.Linear(self.hidden_dim * 2 + self.config.token_type_dim + 1, config.rel_emb_size)
+            self.hidden_proj = nn.Linear(self.hidden_dim * 2, self.hidden_dim)
+            self.layer_proj = nn.Linear(2*self.config.num_layers, 1)
         else:
             self.ner_layer = nn.Linear(config.hidden_dim_lstm * 2, config.num_token_type)
             self.selection_u = nn.Linear(self.hidden_dim * 2 + self.config.token_type_dim, config.rel_emb_size)
@@ -91,9 +93,12 @@ class JointModel(nn.Module):
     
     def atten_network(self, encoder_out, hidden_final):
         # [batch, seq_len, hidden_dim_lstm]
-        out_squeeze = encoder_out[:, :, :self.config.hidden_dim_lstm] + encoder_out[:, :, self.config.hidden_dim_lstm:]
-        hidden_squeeze = torch.sum(hidden_final, dim=0, keepdim=True)  # [1, batch, hidden_dim_lstm]
-        atten_score = torch.bmm(hidden_squeeze.transpose(0, 1), out_squeeze.transpose(-1, -2))  # [batch, 1, seq_len]
+        # out_squeeze = encoder_out[:, :, :self.config.hidden_dim_lstm] + encoder_out[:, :, self.config.hidden_dim_lstm:]
+        # hidden_squeeze = torch.sum(hidden_final, dim=0, keepdim=True)  # [1, batch, hidden_dim_lstm]
+        out_squeeze = self.hidden_proj(encoder_out)  # [batch, seq_len, hidden_dim_lstm]
+        hidden_squeeze = self.layer_proj(hidden_final.permute(1, 2, 0))  # [batch, hidden_dim, 1]
+        
+        atten_score = torch.bmm(hidden_squeeze.transpose(-1, -2), out_squeeze.transpose(-1, -2))  # [batch, 1, seq_len]
         atten_weights = F.softmax(atten_score, dim=-1)
         
         return atten_weights.transpose(-1, -2)  # [batch, seq_len, 1]

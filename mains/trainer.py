@@ -317,6 +317,8 @@ if __name__ == '__main__':
     config = Config()
     if config.use_attention:
         print("use attention")
+    print("do not use tanh")
+    print("学习率：{}".format(config.lr))
     embedding_pre = get_embedding_pre()
     data_processor = ModelDataPreparation(config)
     train_loader, dev_loader, test_loader = data_processor.get_train_dev_data(
