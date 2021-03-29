@@ -92,7 +92,7 @@ class JointModel(nn.Module):
     def atten_network(self, encoder_out, hidden_final):
         # [batch, seq_len, hidden_dim_lstm]
         out_squeeze = encoder_out[:, :, :self.config.hidden_dim_lstm] + encoder_out[:, :, self.config.hidden_dim_lstm:]
-        hidden_squeeze = torch.sum(hidden_final, dim=0)  # [1, batch, hidden_dim_lstm]
+        hidden_squeeze = torch.sum(hidden_final, dim=0, keepdim=True)  # [1, batch, hidden_dim_lstm]
         atten_score = torch.bmm(hidden_squeeze.transpose(0, 1), out_squeeze.transpose(-1, -2))  # [batch, 1, seq_len]
         atten_weights = F.softmax(atten_score, dim=-1)
         

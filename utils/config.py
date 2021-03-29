@@ -19,7 +19,7 @@ else:
 
 class Config:
     def __init__(self,
-                 lr=0.0005,
+                 lr=0.001,
                  epochs=100,
                  vocab_size=16116,
                  embedding_dim=100,
@@ -49,7 +49,7 @@ class Config:
         self.num_token_type = len(self.token_types)
         self.vocab_file = '../data/vocab.txt'
         self.max_seq_length = 256
-        self.num_sample = 10240
+        self.num_sample = 20480
         self.num_sample_eval = 128
 
         self.dropout_embedding = 0.1  # 从0.2到0.1

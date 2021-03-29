@@ -21,7 +21,7 @@ import json
 
 def test():
     path_test = './test.json'
-    PATH_MODEL = '../models/27m-p0.83f0.83n2.32r0.66.pth'
+    PATH_MODEL = '../models/27m-p0.83f0.83n2.32r0.66.pth'  # 对应的是添加了tanh的joint_model
     config = Config()
     num_sample_test = 0
     with open(path_test, 'r', encoding='utf-8') as f:
