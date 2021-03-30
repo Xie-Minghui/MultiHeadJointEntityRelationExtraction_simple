@@ -91,17 +91,28 @@ class JointModel(nn.Module):
         # self.weights_loss[0] = 1
         # self.focal_loss = Focal_loss(alpha=self.weights_loss, gamma=4, num_classes=config.num_relations)
     
-    def atten_network(self, encoder_out, hidden_final):
+    def atten_network(self, encoder_out, hidden_final, is_test):
         # [batch, seq_len, hidden_dim_lstm]
-        # out_squeeze = encoder_out[:, :, :self.config.hidden_dim_lstm] + encoder_out[:, :, self.config.hidden_dim_lstm:]
-        # hidden_squeeze = torch.sum(hidden_final, dim=0, keepdim=True)  # [1, batch, hidden_dim_lstm]
-        out_squeeze = self.hidden_proj(encoder_out)  # [batch, seq_len, hidden_dim_lstm]
+        out_squeeze = encoder_out[:, :, :self.config.hidden_dim_lstm] + encoder_out[:, :, self.config.hidden_dim_lstm:]
+        # hidden_squeeze = torch.sum(hidden_final, dim=0, keepdim=True).permute(1, 2, 0)  # [1, batch, hidden_dim_lstm]
+        # out_squeeze = self.hidden_proj(encoder_out)  # [batch, seq_len, hidden_dim_lstm]
         hidden_squeeze = self.layer_proj(hidden_final.permute(1, 2, 0))  # [batch, hidden_dim, 1]
+        hidden_squeeze = hidden_squeeze.squeeze(2)
+        out_squeeze = torch.tanh(out_squeeze)
         
-        atten_score = torch.bmm(hidden_squeeze.transpose(-1, -2), out_squeeze.transpose(-1, -2))  # [batch, 1, seq_len]
-        atten_weights = F.softmax(atten_score, dim=-1)
+        # atten_score = torch.bmm(hidden_squeeze.transpose(-1, -2), out_squeeze.transpose(-1, -2))  # [batch, 1, seq_len]
+        atten_score = torch.bmm(out_squeeze, hidden_squeeze.unsqueeze(2)).squeeze(2)  # [batch, 1, seq_len]
+        if is_test:
+            print(out_squeeze)
+            print('*'*50)
+            print(hidden_squeeze)
+            print("*"*50)
+            print(atten_score)
+        # atten_score = torch.tanh(atten_score)
+        atten_weights = F.softmax(atten_score, dim=1)
         
-        return atten_weights.transpose(-1, -2)  # [batch, seq_len, 1]
+        # return atten_weights.transpose(-1, -2)  # [batch, seq_len, 1]
+        return atten_weights.unsqueeze(2)  # [batch, seq_len]
         
     # def get_ner_score(self, output_lstm):
     #
@@ -168,7 +179,7 @@ class JointModel(nn.Module):
             hidden_init = torch.randn(2 * self.num_layers, self.batch_size, self.hidden_dim)
         output_lstm, h_n =self.gru(embeddings, hidden_init)
         if self.config.use_attention:
-            atten_weights = self.atten_network(output_lstm, h_n)
+            atten_weights = self.atten_network(output_lstm, h_n, is_test)
         # output_lstm [batch, seq_len, 2*hidden_dim]  h_n [2*num_layers, batch, hidden_dim]
         # if self.config.use_dropout:
         #     output_lstm = self.dropout_lstm_layer(output_lstm)  # 用了效果变差
@@ -222,7 +233,7 @@ class JointModel(nn.Module):
         rel_score_prob = rel_score_prob - (self.config.threshold_rel - 0.5)  # 超过了一定阈值之后才能判断关系
         pred_rel = torch.round(rel_score_prob).to(torch.int64)
         if is_test:
-            return pred_ner, pred_rel
+            return pred_ner, pred_rel, atten_weights
 
         return loss_ner, loss_rel, pred_ner, pred_rel
         
