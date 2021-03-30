@@ -26,7 +26,7 @@ class JointModel(nn.Module):
     def __init__(self, config, embedding_pre=None):
         super().__init__()
         setup_seed(1)
-        
+        print("use adv training")
         self.vocab_size = config.vocab_size
         self.embedding_dim = config.embedding_dim
         self.hidden_dim = config.hidden_dim_lstm
@@ -81,6 +81,7 @@ class JointModel(nn.Module):
         #     output_lstm = self.dropout_lstm_layer(output_lstm)  # 用了效果变差
         # [batch_size, seq_len, num_token_type]
         ner_score = self.ner_layer(output_lstm)
+        loss_ner, loss_rel = 0, 0
         # 下面是使用CFR
         if not is_test:
             log_likelihood = self.crf_model(ner_score, data_item['token_type_list'].to(torch.int64),
@@ -103,6 +104,9 @@ class JointModel(nn.Module):
         B, L, H = rel_input.size()
         u = torch.tanh(self.selection_u(rel_input)).unsqueeze(1).expand(B, L, L, -1)  # (B,L,L,R)
         v = torch.tanh(self.selection_v(rel_input)).unsqueeze(2).expand(B, L, L, -1)
+
+        # u = self.selection_u(rel_input).unsqueeze(1).expand(B, L, L, -1)  # (B,L,L,R)
+        # v = self.selection_v(rel_input).unsqueeze(2).expand(B, L, L, -1)
         uv = torch.tanh(self.selection_uv(torch.cat((u, v), dim=-1)))
         selection_logits = torch.einsum('bijh,rh->birj', uv, self.rel_embedding.weight)
         selection_logits = selection_logits.permute(0, 1, 3, 2)

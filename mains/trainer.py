@@ -16,7 +16,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm
 from utils.config import Config, USE_CUDA
-from modules.joint_model import JointModel
+from modules.joint_model_adv import JointModel
 from data_loader.data_process import ModelDataPreparation
 import math
 
@@ -109,7 +109,7 @@ class Trainer:
             # pbar.set_description('TRAIN LOSS: {}'.format(loss_total/self.num_sample_total))
             if (epoch+1) % 1 == 0:
                 self.evaluate()
-            if epoch > 8 and f1_ner_total > f1_ner_total_best:
+            if epoch > 16 and f1_ner_total > f1_ner_total_best:
                 torch.save({
                     'epoch': epoch+1, 'state_dict': model.state_dict(), 'f1_best': f1_ner_total,
                     'optimizer': self.optimizer.state_dict(),
@@ -211,16 +211,17 @@ class Trainer:
         pbar = tqdm(enumerate(self.test_dataset), total=len(self.test_dataset))
         data_item0 = None
         for i, data_item in pbar:
-            pred_ner, pred_rel, atten_weights = self.model(data_item, is_test=True)
+            # pred_ner, pred_rel, atten_weights = self.model(data_item, is_test=True)
+            pred_ner, pred_rel = self.model(data_item, is_test=True)
             if random.random() > 0.7:
                 data_item0 = data_item
-                pred_ner0, pred_rel0, atten_weights0 = pred_ner, pred_rel, atten_weights
+                pred_ner0, pred_rel0 = pred_ner, pred_rel
         
         if data_item0 is None:
             data_item0 = data_item
-            pred_ner0, pred_rel0, atten_weights0 = pred_ner, pred_rel, atten_weights
+            pred_ner0, pred_rel0 = pred_ner, pred_rel
         x = random.randint(0, 15)
-        pred_ner, pred_rel, atten_weights = pred_ner0[x], pred_rel0[x], atten_weights0[x]
+        pred_ner, pred_rel = pred_ner0[x], pred_rel0[x]
         pred_rel_list = []
         length = len([c for c in data_item0['text'][x]])
         # for i in range(length):
@@ -243,7 +244,7 @@ class Trainer:
             token_pred.append(self.id2token_type[i])
             cnt += 1
         print("token_pred: {}".format(token_pred))
-        print("attention_weights:{}".format(atten_weights))
+        # print("attention_weights:{}".format(atten_weights))
         print(data_item0['text'][x])
         # print(data_item0['spo_list'][x])
         print("pred_rel_list: {}".format(pred_rel_list))
@@ -320,6 +321,7 @@ if __name__ == '__main__':
         print("use attention")
     print("do not use tanh")
     print("学习率：{}".format(config.lr))
+    print("teach_rate: {}".format(config.teach_rate))
     embedding_pre = get_embedding_pre()
     data_processor = ModelDataPreparation(config)
     train_loader, dev_loader, test_loader = data_processor.get_train_dev_data(
