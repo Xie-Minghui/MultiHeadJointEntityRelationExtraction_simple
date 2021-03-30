@@ -167,7 +167,8 @@ class JointModel(nn.Module):
         else:
             hidden_init = torch.randn(2 * self.num_layers, self.batch_size, self.hidden_dim)
         output_lstm, h_n =self.gru(embeddings, hidden_init)
-        atten_weights = self.atten_network(output_lstm, h_n)
+        if self.config.use_attention:
+            atten_weights = self.atten_network(output_lstm, h_n)
         # output_lstm [batch, seq_len, 2*hidden_dim]  h_n [2*num_layers, batch, hidden_dim]
         # if self.config.use_dropout:
         #     output_lstm = self.dropout_lstm_layer(output_lstm)  # 用了效果变差
