@@ -15,14 +15,15 @@ sys.path.append('/home/xieminghui/Projects/MultiHeadJointEntityRelationExtractio
 from data_loader.data_process import ModelDataPreparation
 from mains.trainer import Trainer
 from utils.config import Config, USE_CUDA
-from modules.joint_model import JointModel
+from modules.joint_model_adv import JointModel
 import json
 
 
 def test():
     path_test = './test.json'
     # PATH_MODEL = '../models/27m-p0.83f0.83n2.32r0.66.pth'  # 对应的是添加了tanh的joint_model
-    PATH_MODEL = '../models/28m-p0.86f0.88n1.50r0.56.pth'  # 对应的是添加了tanh的joint_model
+    # PATH_MODEL = '../models/28m-p0.86f0.88n1.50r0.56.pth'  # 对应的是添加了tanh的joint_model
+    PATH_MODEL = '../models/25m-p0.86f0.87n1.64r0.56.pth'  # 对应的是添加了tanh的joint_model_adv
     config = Config()
     num_sample_test = 0
     with open(path_test, 'r', encoding='utf-8') as f:

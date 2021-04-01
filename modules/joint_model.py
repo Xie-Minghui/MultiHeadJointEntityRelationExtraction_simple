@@ -102,12 +102,12 @@ class JointModel(nn.Module):
         
         # atten_score = torch.bmm(hidden_squeeze.transpose(-1, -2), out_squeeze.transpose(-1, -2))  # [batch, 1, seq_len]
         atten_score = torch.bmm(out_squeeze, hidden_squeeze.unsqueeze(2)).squeeze(2)  # [batch, 1, seq_len]
-        if is_test:
-            print(out_squeeze)
-            print('*'*50)
-            print(hidden_squeeze)
-            print("*"*50)
-            print(atten_score)
+        # if is_test:
+        #     print(out_squeeze)
+        #     print('*'*50)
+        #     print(hidden_squeeze)
+        #     print("*"*50)
+        #     print(atten_score)
         # atten_score = torch.tanh(atten_score)
         atten_weights = F.softmax(atten_score, dim=1)
         
