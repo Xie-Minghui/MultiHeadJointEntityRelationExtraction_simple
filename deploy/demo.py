@@ -45,6 +45,7 @@ def test():
         print("*"*50)
     print("所有关系三元组:\n {}".format(rel_triple_list))
     
+    return rel_triple_list
 
 if __name__ == '__main__':
     test()

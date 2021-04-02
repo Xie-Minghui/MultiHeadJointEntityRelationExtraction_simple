@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>实体关系抽取演示</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="author" content="">
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+
+    <style>
+        .bars{height:auto;width:50%; float:left;}
+
+        pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; height:auto;}
+        .string { color: green; }
+        .number { color: darkorange; }
+        .boolean { color: blue; }
+        .null { color: magenta; }
+        .key { color: red;}
+    </style>
+    <link rel="stylesheet" href="static/css/nlp.css">
+	<script src="/static/js/jquery-2.1.4.min.js"></script>
+    <SCRIPT LANGUAGE="JavaScript">
+        function UrlPOST(txt,myfun){
+            if (txt=="")
+            {
+                return "error parm";
+            }
+            var httpurl = "/query";
+            //alert(httpurl);
+
+            $.ajax({
+                    type: "POST",
+                    data: "text="+txt,
+                    url: httpurl,
+                    //async:false,
+                    success: function(data)
+                    {
+                        //alert(data);
+                        //alert(data['result']);
+                        //$("#"+ objLabel).html(data['result']);
+                        //return data
+                        myfun(data);
+                    }
+            });
+        }
+
+        function showresult(dat){
+            r = dat['result'];
+            c='共'+len(r)+'句内容:\n';
+            for(var i=0;i<len(r);i++){
+                c+= "第"+ (i+1) + "句:" + r[i] + "\n\n";
+            }
+            $("#result").html(c);
+        }
+
+        $(document).ready(function(){
+            $("#bt_submit").click(function() {
+                var txt = $("#txt").val();
+                if (txt=="")
+                { return; }
+                var voc = "";
+                voc = UrlPOST(txt,showresult);
+            });
+        });
+    </SCRIPT>
+</head>
+<body class="ai-platform">
+<div class="nlp-word">
+	<div class="word-head">实体关系抽取演示版本: {{ version }}</div>
+	<div class="word-form">
+		<div class="com-text-cover">
+			<div class="mid-down-title">
+				<span class="down-title-des">请输入待分析的文本：</span>
+			</div>
+			<textarea name="txt" id="txt" spellcheck="false" maxlength="" class="com-txt" onfocus="this.select()">
+吃什么：北宋的美食大家苏轼在美食方面的造诣绝对是常人无法比拟的，他留下的美食造福了无数后人，比如：东坡肉
+李小璐反倒忙着在外捞金，让贾乃亮忙着操办新家，贾乃亮的家庭地位是要翻身了
+歌曲介绍由大飞作词，深白色作曲，吕绍淳编曲的歌曲《直线》，属于专辑中深具爆发力的一首歌曲
+			</textarea>
+			<div class="ed-form-down"><span class="ed-down-tips">提示：无需处理格式，直接复制文本内容即可</span></div>
+		</div>
+	</div>
+	<div class="result-cover">
+			<div class="result-left-title">抽取结果：
+			<input type="button" value=" 提交 " id="bt_submit" />
+			</div>
+				<textarea name="result" id="result" spellcheck="false" maxlength="" class="com-txt"></textarea>
+			<br/>
+	</div>
+  </div>
+
+
+</body>
+</html>
