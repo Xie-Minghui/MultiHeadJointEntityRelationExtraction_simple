@@ -18,9 +18,19 @@
         .null { color: magenta; }
         .key { color: red;}
     </style>
-    <link rel="stylesheet" href="static/css/nlp.css">
+    <link rel="stylesheet" href="/static/css/nlp.css">
 	<script src="/static/js/jquery-2.1.4.min.js"></script>
     <SCRIPT LANGUAGE="JavaScript">
+		function showresult(dat){
+            r = dat['result'];
+            console.log(r);
+            // c='共'+len(r)+'句内容:\n';
+            // for(var i=0;i<len(r);i++){
+            //     c+= "第"+ (i+1) + "句:" + r[i] + "\n\n";
+            // }
+            $("#result").html(r);
+        }
+
         function UrlPOST(txt,myfun){
             if (txt=="")
             {
@@ -43,15 +53,6 @@
                         myfun(data);
                     }
             });
-        }
-
-        function showresult(dat){
-            r = dat['result'];
-            c='共'+len(r)+'句内容:\n';
-            for(var i=0;i<len(r);i++){
-                c+= "第"+ (i+1) + "句:" + r[i] + "\n\n";
-            }
-            $("#result").html(c);
         }
 
         $(document).ready(function(){
@@ -85,7 +86,9 @@
 			<div class="result-left-title">抽取结果：
 			<input type="button" value=" 提交 " id="bt_submit" />
 			</div>
-				<textarea name="result" id="result" spellcheck="false" maxlength="" class="com-txt"></textarea>
+				<textarea name="result" id="result" spellcheck="false" maxlength="" class="com-txt">
+				</textarea>
+
 			<br/>
 	</div>
   </div>
