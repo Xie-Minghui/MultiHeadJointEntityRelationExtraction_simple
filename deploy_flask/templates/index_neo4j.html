@@ -7,22 +7,11 @@
     <meta name="author" content="">
     <meta name="keywords" content="">
     <meta name="description" content="">
-
-<!--    <style>-->
-<!--        .bars{height:auto;width:50%; float:left;}-->
-
-<!--        pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; height:auto;}-->
-<!--        .string { color: green; }-->
-<!--        .number { color: darkorange; }-->
-<!--        .boolean { color: blue; }-->
-<!--        .null { color: magenta; }-->
-<!--        .key { color: red;}-->
-<!--    </style>-->
 	<style type="text/css">
         /* cytoscape graph */
         #cy {
-            height: 100%;
-            width: 100%;
+            height: 80%;
+            width: 80%;
             position: absolute;
         }
     </style>
@@ -35,41 +24,36 @@
 			console.log(res);
             cytoscape({
                 container: document.getElementById('cy'),
-				// zoom:1,
-				// minZoom: 0.5,
-	    		// maxZoom: 2,
+				zoom:1,
+				minZoom: 0.5,
+	    		maxZoom: 1,
 				pan: { x: 0, y: 0 },//图的初始平移位置。
 				styleEnabled: true,
 				hideLabelsOnViewport: false,
-				zoomingEnabled: false,
+				zoomingEnabled: true,
 				pixelRatio: 'auto',
-                elements: {
-					nodes: [
-						{data: {id: 'a', name: 'Tom Cruise', label: 'Person'}},
-						{data: {id: 'b', name: 'Top Gun', label: 'Movie'}},
-						{data: {id: 'c', name: 'To', label: 'Movie'}}
-					],
-					edges: [
-							{data: {source: 'a', target: 'b', relationship: 'Acted_In'}},
-							{data: {source: 'a', target: 'c', relationship: 'Hji'}},
-							{data: {source: 'b', target: 'c', relationship: 'jiba'}}
-							]
-				},
+                elements:res,
 				style: [
 					{ selector: 'node',
-						css: {'background-color': '#6FB1FC', 'content': 'data(id)'}
+						css: {'background-color': '#6fb1fc', 'content': 'data(id)'}
 						},
-					{selector: 'edge',
-						style: {
-						'width': 3,
-						'line-color': '#ccc',
-						'target-arrow-color': '#ccc',
-						'target-arrow-shape': 'triangle'
+					{
+						selector: 'edge',
+						css: {
+							'background-color': '#6FB1FC', 'content': 'data(relationship)',
+							// 添加箭头
+							'width': 3,
+							'line-color': '#cccccc',
+							'target-arrow-color': '#ccc',
+							'target-arrow-shape': 'triangle',
+							// 'curve-style': 'bezier'
 						},
-						css: {'background-color': '#6FB1FC', 'content': 'data(relationship)'}
 					}
 					],
-                layout: {name: 'circle'}
+                layout: {
+                	name: 'circle',//circle, cose（乱序）
+				 	animate: true,//出来动画
+					}
             });
         }
         function UrlPOST(txt,myfun){
@@ -81,7 +65,7 @@
                     type: "POST",
                     data: "text="+txt,
                     url: httpurl,
-                    //async:false,
+                    async:false,
                     success: function(data){
                         myfun(data);
                     }
@@ -119,15 +103,12 @@
 			<div class="result-left-title">抽取结果：
 			<input type="button" value=" 提交 " id="bt_submit" />
 			</div>
-
 <!--				<textarea name="result" id="result" spellcheck="false" maxlength="" class="com-txt">-->
 <!--				</textarea>-->
 <div id="cy"></div>
 <!--			<br/>-->
 	</div>
   </div>
-
-
 
 </body>
 </html>

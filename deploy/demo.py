@@ -46,7 +46,9 @@ def test():
     # print("所有关系三元组:\n {}".format(rel_triple_list))
     #
     # return rel_triple_list
-    return 'yes'
+    return [[['北宋', '苏轼', '朝代']], [], [['大飞', '直线', '作词'], ['深白色', '直线', '作曲']],
+            [['汉族', '周镇国', '民族']], [['贾乃亮', '李小璐', '丈夫'], ['李小璐', '贾乃亮', '妻子']]]
+
 
 if __name__ == '__main__':
     test()
