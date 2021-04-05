@@ -10,9 +10,29 @@ file description:：
 """
 
 from flask import Flask, render_template, request, jsonify
-from mains.trainer import Trainer
 import json
 from deploy.demo import test
+from py2neo import Graph
+
+# set up authentication parameters
+# authenticate("localhos t:7474", "neo4j", "root")
+# connect to authenticated graph database
+# graph = Graph("http://localhost:7474/db/data/")
+graph = Graph("http://localhost:7474",username="neo4j", password="root")
+
+def build_nodes(node_record):
+    data = {"id": str(node_record.n._id), "label": next(iter(node_record.n.labels))}
+    data.update(node_record.n.properties)
+
+    return {"data": data}
+
+
+def build_edges(relation_record):
+    data = {"source": str(relation_record.r.start_node._id),
+            "target": str(relation_record.r.end_node._id),
+            "relationship": relation_record.r.rel.type}
+
+    return {"data": data}
 
 
 def sent_split(text):
@@ -28,7 +48,7 @@ def flask_server():
     
     @app.route("/")
     def index():
-        return render_template("index.html", version='V 0.1.2')
+        return render_template("index_neo4j.html", version='V 0.1.2')
 
     @app.route("/query", methods=["POST"])
     def query():
@@ -49,6 +69,7 @@ def flask_server():
                 f.write('\n')
         rel_triple_list = test()
         res['result'] = rel_triple_list
+        
         return jsonify(res)
     
     app.run(debug=True)
