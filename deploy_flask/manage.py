@@ -11,11 +11,14 @@ file description:：
 
 from flask import Flask, render_template, request, jsonify
 import json
+import sys
+sys.path.append('/home/xieminghui/Projects/MultiHeadJointEntityRelationExtraction_simple/')  # 添加路径
+
 from deploy.demo import test
-from py2neo import Graph
+# from py2neo import Graph
 
 
-graph = Graph("http://localhost:7474", username="neo4j", password="root")
+# graph = Graph("http://localhost:7474", username="neo4j", password="root")
 
 
 def build_nodes(node_record):

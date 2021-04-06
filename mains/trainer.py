@@ -28,6 +28,8 @@ from seqeval.metrics import classification_report
 import numpy as np
 import codecs
 import random
+import neptune
+
 
 class Trainer:
     def __init__(self,
@@ -107,6 +109,10 @@ class Trainer:
             print("train ner loss: {0}, rel loss: {1}, f1 score: {2}, precission score: {3}".format(loss_ner_total/self.num_sample_total, loss_rel_total/self.num_sample_total,
                     f1_ner_total/self.num_sample_total*self.config.batch_size, correct_score_total / len(self.train_dataset)))
             # pbar.set_description('TRAIN LOSS: {}'.format(loss_total/self.num_sample_total))
+            neptune.log_metric("train ner loss", loss_ner_total/self.num_sample_total)
+            neptune.log_metric("train ner f1 score", f1_ner_total/self.num_sample_total*self.config.batch_size)
+            neptune.log_metric("train rel precission score", correct_score_total / len(self.train_dataset))
+            
             if (epoch+1) % 1 == 0:
                 self.evaluate()
             if epoch > 16 and f1_ner_total > f1_ner_total_best:
@@ -316,6 +322,10 @@ def get_embedding_pre():
 
 
 if __name__ == '__main__':
+    neptune.init(
+        api_token='eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vdWkubmVwdHVuZS5haSIsImFwaV91cmwiOiJodHRwczovL3VpLm5lcHR1bmUuYWkiLCJhcGlfa2V5IjoiNTM3OTQzY2ItMzRhNC00YjYzLWJhMTktMzI0NTk4NmM4NDc3In0=',
+        project_qualified_name='mangopudding/MultiHeadJointEntityRelationExtraction-simple')
+    neptune.create_experiment('rel_train')
     config = Config()
     if config.use_attention:
         print("use attention")
