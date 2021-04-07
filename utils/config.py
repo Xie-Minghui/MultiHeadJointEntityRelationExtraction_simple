@@ -49,7 +49,7 @@ class Config:
         self.num_token_type = len(self.token_types)
         self.vocab_file = '../data/vocab.txt'
         self.max_seq_length = 256
-        self.num_sample = 20480
+        self.num_sample = 2048
         self.num_sample_eval = 320
 
         self.dropout_embedding = 0.1  # 从0.2到0.1
