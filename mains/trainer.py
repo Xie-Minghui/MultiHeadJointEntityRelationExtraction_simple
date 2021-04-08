@@ -31,7 +31,7 @@ import random
 # import neptune
 from torch.utils.tensorboard import SummaryWriter
 
-writer = SummaryWriter()
+writer = SummaryWriter('../record/log')
 
 class Trainer:
     def __init__(self,
@@ -91,9 +91,9 @@ class Trainer:
             for i, data_item in pbar:
                 loss_ner, loss_rel, pred_ner, pred_rel, f1_ner = self.train_batch(data_item)
 
-                loss_total += (loss_ner + loss_rel)
-                loss_ner_total += loss_ner
-                loss_rel_total += loss_rel
+                loss_total += (float(loss_ner) + float(loss_rel))
+                loss_ner_total += float(loss_ner)
+                loss_rel_total += float(loss_rel)
                 f1_ner_total += f1_ner
                 
                 pred_rel_max = -torch.argmax(pred_rel, dim=-1)
@@ -106,24 +106,35 @@ class Trainer:
                 correct_score = correct / num_non_zero
                 correct_score_total += correct_score
                 
-            if (epoch+1) % 1 == 0:
-                self.predict_sample()
-            print("train ner loss: {0}, rel loss: {1}, f1 score: {2}, precission score: {3}".format(loss_ner_total/self.num_sample_total, loss_rel_total/self.num_sample_total,
-                    f1_ner_total/self.num_sample_total*self.config.batch_size, correct_score_total / len(self.train_dataset)))
+            ner_loss_final_train = loss_ner_total/self.num_sample_total
+            rel_loss_final_train = loss_rel_total/self.num_sample_total
+            f1_ner_final_train = f1_ner_total/self.num_sample_total*self.config.batch_size
+            precision_score_final_train = correct_score_total / len(self.train_dataset)
+            print("train ner loss: {0}, rel loss: {1}, f1 score: {2}, precission score: {3}".format(ner_loss_final_train, rel_loss_final_train,
+                    f1_ner_final_train, precision_score_final_train))
             # pbar.set_description('TRAIN LOSS: {}'.format(loss_total/self.num_sample_total))
             
             # neptune 记录代码
             # neptune.log_metric("train ner loss", loss_ner_total/self.num_sample_total)
             # neptune.log_metric("train ner f1 score", f1_ner_total/self.num_sample_total*self.config.batch_size)
             # neptune.log_metric("train rel precission score", correct_score_total / len(self.train_dataset))
-            
+
             # tensorboard 记录代码
-            writer.add_scalar('../record/Loss/train_ner_loss', loss_ner_total/self.num_sample_total, epoch)
-            writer.add_scalar('../record/Accuracy/train_ner_f1', f1_ner_total/self.num_sample_total*self.config.batch_size, epoch)
-            writer.add_scalar('../record/Accuracy/train_rel_ps', correct_score_total / len(self.train_dataset), epoch)
-            
+            writer.add_scalar('Loss/train_ner_loss', ner_loss_final_train, epoch)
+            writer.add_scalar('Accuracy/train_rel_loss', rel_loss_final_train, epoch)
+            writer.add_scalar('Accuracy/train_ner_f1', f1_ner_final_train, epoch)
+            writer.add_scalar('Accuracy/train_rel_    ps', precision_score_final_train, epoch)
             if (epoch+1) % 1 == 0:
-                self.evaluate()
+                self.predict_sample()
+            if (epoch+1) % 1 == 0:
+                ner_loss_final_eval, rel_loss_final_eval, f1_ner_final_eval, precision_score_final_eval = self.evaluate()
+                # self.evaluate()
+                # tensorboard 记录代码
+                writer.add_scalar('Loss/eval_ner_loss', ner_loss_final_eval, epoch)
+                writer.add_scalar('Accuracy/eval_rel_loss', rel_loss_final_eval, epoch)
+                writer.add_scalar('Accuracy/eval_ner_f1', f1_ner_final_eval, epoch)
+                writer.add_scalar('Accuracy/eval_rel_ps', precision_score_final_eval, epoch)
+            
             if epoch > 16 and f1_ner_total > f1_ner_total_best:
                 torch.save({
                     'epoch': epoch+1, 'state_dict': model.state_dict(), 'f1_best': f1_ner_total,
@@ -133,6 +144,8 @@ class Trainer:
                 'f'+str("%.2f"%(f1_ner_total/self.num_sample_total*self.config.batch_size)) + 'n'+str("%.2f"%(loss_ner_total/self.num_sample_total)) +
                 'r'+str("%.2f"%(loss_rel_total/self.num_sample_total)) + '.pth'
                 )
+                
+            
     
     def train_batch(self, data_item):
         self.optimizer.zero_grad()
@@ -169,8 +182,10 @@ class Trainer:
             pred_token_type = self.restore_ner(pred_ner, data_item['mask_tokens'])
             f1_ner = f1_score(data_item['token_type_origin'], pred_token_type)
             f1_ner_total += f1_ner
-            loss_ner_total += loss_ner
-            loss_rel_total += loss_rel
+            # loss_ner_total += loss_ner
+            # loss_rel_total += loss_rel
+            loss_ner_total += float(loss_ner)  # 使用float去掉梯度，可以节省几百兆的显存
+            loss_rel_total += float(loss_rel)
 
             pred_rel_max = -torch.argmax(pred_rel, dim=-1)
             one = torch.ones_like(pred_rel_max)
@@ -182,11 +197,15 @@ class Trainer:
             correct_score = correct / num_non_zero
             correct_score_total += correct_score
             # loss_total += (loss_ner + loss_rel)
-        print("eval ner loss: {0}, rel loss: {1}, f1 score: {2}, precission score: {3}".format(loss_ner_total/samle_num,
-            loss_rel_total/samle_num, f1_ner_total/len(self.dev_dataset), correct_score_total/ len(self.dev_dataset)))
+        ner_loss_final_eval = loss_ner_total/samle_num
+        rel_loss_final_eval = loss_rel_total/samle_num
+        f1_ner_final_eval = f1_ner_total/len(self.dev_dataset)
+        precision_score_final_eval = correct_score_total/len(self.dev_dataset)
+        print("eval ner loss: {0}, rel loss: {1}, f1 score: {2}, precission score: {3}".format(ner_loss_final_eval,
+                                        rel_loss_final_eval, f1_ner_final_eval, precision_score_final_eval))
         self.model.train(True)
         
-        return loss_total / (len(self.dev_dataset) * self.config.batch_size)
+        return ner_loss_final_eval, rel_loss_final_eval, f1_ner_final_eval, precision_score_final_eval
     
     def predict(self):
         print('STARTING TESTING...')
