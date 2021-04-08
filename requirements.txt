@@ -5,4 +5,6 @@ pytorch-crf==0.7.2
 transformers==4.3.3
 tqdm==4.59.0
 seqeval==0.0.10
+neptune-client==0.9.2
+tensorboard
 numpy
