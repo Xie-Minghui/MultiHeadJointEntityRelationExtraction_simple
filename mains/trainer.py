@@ -157,18 +157,6 @@ class Trainer:
         
         return loss_ner, loss_rel, pred_ner, pred_rel, f1_ner
     
-    def restore_ner(self, pred_ner, mask_tokens):  # 将预测的结果还原成命名实体识别的结果
-        pred_token_type = []
-        for i in range(len(pred_ner)):
-            list_tmp = []
-            for j in range(len(pred_ner[0])):
-                if mask_tokens[i, j] == 0:
-                    break
-                list_tmp.append(self.id2token_type[pred_ner[i][j]])
-            pred_token_type.append(list_tmp)
-            
-        return pred_token_type
-    
     def evaluate(self):
         print('STARTING EVALUATION...')
         self.model.train(False)
@@ -227,15 +215,16 @@ class Trainer:
                 continue
             pred_rel_list[item[0]].append([item[1], item[2], self.id2rel[item[3]]])
         texts = [text for text in data_item['text']]
-        lengths = [len([c for c in data_item['text'][i]]) for i in range(self.config.batch_size)] # 测试的时候只有一个样例
-        token_pred = [[] for _ in range(self.config.batch_size)]
-        for i in range(len(pred_ner)):
-            cnt = 0
-            for id in pred_ner[i]:
-                token_pred[i].append(self.id2token_type[id])
-                cnt += 1
-                if cnt >= lengths[i]:
-                    break
+        # lengths = [len([c for c in data_item['text'][i]]) for i in range(self.config.batch_size)] # 测试的时候只有一个样例
+        # token_pred = [[] for _ in range(self.config.batch_size)]
+        # for i in range(len(pred_ner)):
+        #     cnt = 0
+        #     for id in pred_ner[i]:
+        #         token_pred[i].append(self.id2token_type[id])
+        #         cnt += 1
+        #         if cnt >= lengths[i]:
+        #             break
+        token_pred = self.restore_ner(pred_ner, data_item['mask_tokens'])
         self.model.train(True)
         rel_triple_list = []
         for i in range(self.config.batch_size):
@@ -263,12 +252,7 @@ class Trainer:
         pred_ner, pred_rel = pred_ner0[x], pred_rel0[x]
         pred_rel_list = []
         length = len([c for c in data_item0['text'][x]])
-        # for i in range(length):
-        #     for j in range(length):
-        #         for k in range(pred_rel.shape[2]):
-        #             if math.fabs(pred_rel[i, j, k] - 1.0) < 0.1:
-        #                 if k != 0:
-        #                     pred_rel_list.append([i, j, self.id2rel[k]])
+
         loc = pred_rel.nonzero()
         for item in loc:
             item = item.cpu().numpy()
@@ -282,6 +266,7 @@ class Trainer:
                 break
             token_pred.append(self.id2token_type[i])
             cnt += 1
+        # token_pred = self.restore_ner(pred_ner, data_item0['mask_tokens'])  # restore_ner只针对批次预测结果
         print("token_pred: {}".format(token_pred))
         # print("attention_weights:{}".format(atten_weights))
         print(data_item0['text'][x])
@@ -290,7 +275,19 @@ class Trainer:
         self.model.train(True)
         rel_triple = self.convert2StandardOutput(data_item0, x, token_pred, pred_rel_list)
         print("提取得到的关系三元组:\n {}".format(rel_triple))
-
+    
+    def restore_ner(self, pred_ner, mask_tokens):  # 将预测的结果还原成命名实体识别的结果
+        pred_token_type = []
+        for i in range(len(pred_ner)):
+            list_tmp = []
+            for j in range(len(pred_ner[i])):
+                if mask_tokens[i, j] == 0:
+                    break
+                list_tmp.append(self.id2token_type[pred_ner[i][j]])
+            pred_token_type.append(list_tmp)
+    
+        return pred_token_type
+    
     def convert2StandardOutput(self, data_item, loc, token_pred, pred_rel_list):
         '''
         根据文本，命名实体识别结果和关系抽取结果，得到最终的关系三元组
