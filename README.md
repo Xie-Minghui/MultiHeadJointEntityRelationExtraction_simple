@@ -4,8 +4,7 @@ PyTorch code for MultiHead:"Joint entity recognition and relation extraction as 
 
 For a description of the model and experiment, see paper https://arxiv.org/abs/1804.07847.
 
-![image-20210408161005676](C:\Users\xmh\AppData\Roaming\Typora\typora-user-images\image-20210408161005676.png)
-
+![image](./doc/img/model.png)
 
 
 ### Requirements
@@ -40,5 +39,4 @@ python3 manage.py
 ```
 
 Results:
-
-![image-20210408162239231](C:\Users\xmh\AppData\Roaming\Typora\typora-user-images\image-20210408162239231.png)
+![image](./doc/img/deploy.png)
