@@ -31,7 +31,7 @@ import random
 # import neptune
 from torch.utils.tensorboard import SummaryWriter
 
-writer = SummaryWriter('../record/log')
+writer = SummaryWriter('../record/log')  # tensorboard日志文件的存储目录
 
 class Trainer:
     def __init__(self,
@@ -121,17 +121,16 @@ class Trainer:
 
             # tensorboard 记录代码
             writer.add_scalar('Loss/train_ner_loss', ner_loss_final_train, epoch)
-            writer.add_scalar('Accuracy/train_rel_loss', rel_loss_final_train, epoch)
+            writer.add_scalar('Loss/train_rel_loss', rel_loss_final_train, epoch)
             writer.add_scalar('Accuracy/train_ner_f1', f1_ner_final_train, epoch)
-            writer.add_scalar('Accuracy/train_rel_    ps', precision_score_final_train, epoch)
+            writer.add_scalar('Accuracy/train_rel_ps', precision_score_final_train, epoch)
             if (epoch+1) % 1 == 0:
                 self.predict_sample()
             if (epoch+1) % 1 == 0:
                 ner_loss_final_eval, rel_loss_final_eval, f1_ner_final_eval, precision_score_final_eval = self.evaluate()
-                # self.evaluate()
                 # tensorboard 记录代码
                 writer.add_scalar('Loss/eval_ner_loss', ner_loss_final_eval, epoch)
-                writer.add_scalar('Accuracy/eval_rel_loss', rel_loss_final_eval, epoch)
+                writer.add_scalar('Loss/eval_rel_loss', rel_loss_final_eval, epoch)
                 writer.add_scalar('Accuracy/eval_ner_f1', f1_ner_final_eval, epoch)
                 writer.add_scalar('Accuracy/eval_rel_ps', precision_score_final_eval, epoch)
             
@@ -158,7 +157,7 @@ class Trainer:
         
         return loss_ner, loss_rel, pred_ner, pred_rel, f1_ner
     
-    def restore_ner(self, pred_ner, mask_tokens):
+    def restore_ner(self, pred_ner, mask_tokens):  # 将预测的结果还原成命名实体识别的结果
         pred_token_type = []
         for i in range(len(pred_ner)):
             list_tmp = []
@@ -184,7 +183,7 @@ class Trainer:
             f1_ner_total += f1_ner
             # loss_ner_total += loss_ner
             # loss_rel_total += loss_rel
-            loss_ner_total += float(loss_ner)  # 使用float去掉梯度，可以节省几百兆的显存
+            loss_ner_total += float(loss_ner)  # 使用float类型转换去掉梯度，可以节省几百兆的显存
             loss_rel_total += float(loss_rel)
 
             pred_rel_max = -torch.argmax(pred_rel, dim=-1)
@@ -196,7 +195,7 @@ class Trainer:
             num_non_zero = data_item['pred_rel_matrix'].nonzero().size(0)
             correct_score = correct / num_non_zero
             correct_score_total += correct_score
-            # loss_total += (loss_ner + loss_rel)
+
         ner_loss_final_eval = loss_ner_total/samle_num
         rel_loss_final_eval = loss_rel_total/samle_num
         f1_ner_final_eval = f1_ner_total/len(self.dev_dataset)
@@ -208,6 +207,12 @@ class Trainer:
         return ner_loss_final_eval, rel_loss_final_eval, f1_ner_final_eval, precision_score_final_eval
     
     def predict(self):
+        '''
+        和下面predict_sample的区别：predict接收的只有一个批次，用于实际部署时候的预测。
+        predict_sample接受的是predict.json的所有样本，然后从中随机选择一个样本进行输出，用于训练的时候查看模型效果。
+        :return:
+        :rtype:
+        '''
         print('STARTING TESTING...')
         self.model.train(False)
         pbar = tqdm(enumerate(self.test_dataset), total=len(self.test_dataset))
@@ -215,7 +220,7 @@ class Trainer:
             pred_ner, pred_rel = self.model(data_item, is_test=True)
         # pred_ner, pred_rel = pred_ner[0], pred_rel[0]
         pred_rel_list = [[] for _ in range(self.config.batch_size)]
-        loc = pred_rel.nonzero()
+        loc = pred_rel.nonzero()  # 得到关系矩阵中1的位置
         for item in loc:
             item = item.cpu().numpy()
             if math.fabs(item[3]) < 0.1:  # 排除空关系
@@ -287,6 +292,19 @@ class Trainer:
         print("提取得到的关系三元组:\n {}".format(rel_triple))
 
     def convert2StandardOutput(self, data_item, loc, token_pred, pred_rel_list):
+        '''
+        根据文本，命名实体识别结果和关系抽取结果，得到最终的关系三元组
+        :param data_item:
+        :type data_item:
+        :param loc:
+        :type loc:
+        :param token_pred:
+        :type token_pred:
+        :param pred_rel_list:
+        :type pred_rel_list:
+        :return:
+        :rtype:
+        '''
         subject_all, object_all, rel_all = [], [], []
         text = [c for c in data_item['text'][loc]]
         for item in pred_rel_list:
