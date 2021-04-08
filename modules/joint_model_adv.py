@@ -35,8 +35,8 @@ class JointModel(nn.Module):
         self.layer_size = config.layer_size  # self.hidden_dim, 之前这里没有改
         self.num_token_type = config.num_token_type  # 实体类型的综述
         self.config = config
-        if embedding_pre is not None:  # 测试不加载词向量的情况
-            print("use pretrained embeddings")
+        if embedding_pre is not None:
+            print("use pretrained embeddings")  # 添加预训练词向量
             self.word_embedding = nn.Embedding.from_pretrained(torch.FloatTensor(embedding_pre), freeze=False)
         else:
             self.word_embedding = nn.Embedding(config.vocab_size, config.embedding_dim, padding_idx=config.pad_token_id)
@@ -45,9 +45,9 @@ class JointModel(nn.Module):
         self.rel_embedding = nn.Embedding(config.num_relations, config.rel_emb_size)
         self.gru = nn.GRU(config.embedding_dim, config.hidden_dim_lstm, num_layers=config.num_layers, batch_first=True,
                           bidirectional=True, dropout=config.dropout_lstm)
-        self.is_train = True
+        
         if USE_CUDA:
-            self.weights_rel = (torch.ones(self.config.num_relations) * 50).cuda()
+            self.weights_rel = (torch.ones(self.config.num_relations) * 50).cuda()  # 添加关系权重
         else:
             self.weights_rel = torch.ones(self.config.num_relations) * 50
         self.weights_rel[0] = 1
@@ -139,8 +139,8 @@ class JointModel(nn.Module):
             
         loss_ner, loss_rel, pred_ner, selection_logits = self.compute_loss(data_item, embeddings, hidden_init, is_test=is_test)
         loss_total = loss_ner + loss_rel
-        if self.config.use_adv:
-            raw_perturb = torch.autograd.grad(loss_total, embeddings)[0]
+        if self.config.use_adv:  # 进行对抗训练
+            raw_perturb = torch.autograd.grad(loss_total, embeddings)[0]  # 使用loss对embed求导，得出对结果影响最大的方向
             normalized_per = F.normalize(raw_perturb, dim=1, p=2)
             normalized_per = F.normalize(normalized_per, dim=2, p=2)
             perturb = self.config.alpha * math.sqrt(self.config.embedding_dim) * normalized_per.detach()

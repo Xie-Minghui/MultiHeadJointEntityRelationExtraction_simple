@@ -109,18 +109,7 @@ class ModelDataPreparation:
         self.rel2id = {}
         for i, rel in enumerate(self.config.relations):
             self.rel2id[rel] = i
-        # with open('token_type2id.json', 'w', encoding='utf-8') as f:
-        #     json.dump(self.token_type2id, f, ensure_ascii=False)
-        # with open('rel2id.json', 'w', encoding='utf-8') as f:
-        #     json.dump(self.rel2id, f, ensure_ascii=False)
-        # self.token2id = {}
-        # with open(self.config.vocab_file, 'r', encoding='utf-8') as f:
-        #     cnt = 0
-        #     for line in f:
-        #         line = line.rstrip().split()
-        #         self.token2id[line[0]] = cnt
-        #         cnt += 1
-        # self.token2id[' '] = cnt
+
         self.token2id = {}
         with codecs.open('../data/vec.txt', 'r', encoding='utf-8') as f:
             cnt = 0
@@ -264,7 +253,7 @@ class Dataset(torch.utils.data.Dataset):
                 end = lengths[i]
                 # seq = np.array(seq)
                 # seq = seq.astype(float)
-                if is_two:
+                if is_two:  # 二维张量
                     # max_len = 0
                     # for x in seq:
                     #     max_len = max(max_len, len(x))

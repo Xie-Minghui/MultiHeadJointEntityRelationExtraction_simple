@@ -27,7 +27,7 @@ def test():
     PATH_MODEL = '../models/25m-p0.86f0.87n1.64r0.56.pth'  # 对应的是添加了tanh的joint_model_adv
     config = Config()
     num_sample_test = 0
-    with open(path_test, 'r', encoding='utf-8') as f:
+    with open(path_test, 'r', encoding='utf-8') as f:  # 统计预测样本数，设置为一个批次
         for line in f:
             num_sample_test += 1
     config.batch_size = num_sample_test
