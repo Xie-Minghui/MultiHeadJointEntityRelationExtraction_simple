@@ -16,7 +16,7 @@ import numpy as np
 from utils.config import USE_CUDA
 # from utils.FocalLoss import Focal_loss
 import json
-from transformers import AlbertModel
+from transformers import AlbertModel, BertModel
 
 
 def setup_seed(seed):
@@ -47,6 +47,11 @@ class JointModel(nn.Module):
             self.gru = nn.GRU(config.embedding_dim, config.hidden_dim_lstm, num_layers=config.num_layers,
                               batch_first=True,
                               bidirectional=True, dropout=config.dropout_lstm)
+        elif self.config.encode_name == 'bert':
+            print("use bert")
+            # self.bert = BertModel.from_pretrained('../pretrained/bert-base-chinese')
+            self.bert = BertModel.from_pretrained('/home/xieminghui/Projects/EntityRelationExtraction/bert-base-chinese')
+            print("加载bert成功")
         elif self.config.encode_name == 'albert':
             print("use albert")
             with open('../pretrained/albert_chinese_tiny/config.json', 'r') as f:
@@ -54,6 +59,7 @@ class JointModel(nn.Module):
             # self.albert = AlbertModel(config_albert)
             self.albert = AlbertModel.from_pretrained('../pretrained/albert_chinese_tiny')
             print("加载albert成功")
+        
         self.token_type_embedding = nn.Embedding(config.num_token_type, config.token_type_dim)
         self.rel_embedding = nn.Embedding(config.num_relations, config.rel_emb_size)
         
@@ -183,6 +189,8 @@ class JointModel(nn.Module):
         
         if self.config.encode_name == 'albert':
             output_lstm = self.albert(data_item['text_tokened'].to(torch.int64), data_item['mask_tokens'])[0]
+        elif self.config.encode_name == 'bert':
+            output_lstm = self.bert(data_item['text_tokened'].to(torch.int64), data_item['mask_tokens'])[0]
         else:
             # [batch_size, seq_len, embedding_dim]
             embeddings = self.word_embedding(data_item['text_tokened'].to(torch.int64))  # 要转化为int64

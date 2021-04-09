@@ -118,6 +118,15 @@ class ModelDataPreparation:
                     word = line.split(' ')[0]
                     self.token2id[word] = cnt
                     cnt += 1
+        elif self.config.encode_name == 'bert':
+            with open('../pretrained/bert-base-chinese/vocab.txt', 'r', encoding='utf-8') as f:  # ../data/vec.txt
+                cnt = 0
+                for line in f:
+                    word = line.split(' ')[0]
+                    if word[0] == '#' and word[1] == '#':
+                        word = word[2]
+                    self.token2id[word] = cnt
+                    cnt += 1
         elif self.config.encode_name == 'albert':
             with open('../pretrained/albert_chinese_tiny/vocab.txt', 'r', encoding='utf-8') as f:  # ../data/vec.txt
                 cnt = 0
