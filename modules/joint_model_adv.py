@@ -17,6 +17,7 @@ from utils.config import USE_CUDA
 # from utils.FocalLoss import Focal_loss
 import math
 
+
 def setup_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
@@ -26,7 +27,8 @@ class JointModel(nn.Module):
     def __init__(self, config, embedding_pre=None):
         super().__init__()
         setup_seed(1)
-        print("use adv training")
+        if config.use_adv:
+            print("use adv training")
         self.vocab_size = config.vocab_size
         self.embedding_dim = config.embedding_dim
         self.hidden_dim = config.hidden_dim_lstm
@@ -74,7 +76,7 @@ class JointModel(nn.Module):
         # self.weights_loss[0] = 1
         # self.focal_loss = Focal_loss(alpha=self.weights_loss, gamma=4, num_classes=config.num_relations)
     
-    def compute_loss(self,data_item, embeddings, hidden_init, is_test=False, is_eval=False):
+    def compute_loss(self, data_item, embeddings, hidden_init, is_test=False, is_eval=False):
         output_lstm, h_n = self.gru(embeddings, hidden_init)
         # output_lstm [batch, seq_len, 2*hidden_dim]  h_n [2*num_layers, batch, hidden_dim]
         # if self.config.use_dropout:
@@ -139,22 +141,23 @@ class JointModel(nn.Module):
             
         loss_ner, loss_rel, pred_ner, selection_logits = self.compute_loss(data_item, embeddings, hidden_init, is_test=is_test)
         loss_total = loss_ner + loss_rel
-        if self.config.use_adv:  # 进行对抗训练
+        if self.config.use_adv and not is_test:  # 进行对抗训练
             raw_perturb = torch.autograd.grad(loss_total, embeddings)[0]  # 使用loss对embed求导，得出对结果影响最大的方向
             normalized_per = F.normalize(raw_perturb, dim=1, p=2)
             normalized_per = F.normalize(normalized_per, dim=2, p=2)
             perturb = self.config.alpha * math.sqrt(self.config.embedding_dim) * normalized_per.detach()
             perturb_embeddings = perturb + embeddings
             loss_ner_adv, loss_rel_adv, _, _ = self.compute_loss(data_item, perturb_embeddings, hidden_init, is_test=is_test)
-            loss_ner = self.config.gamma*loss_ner + (1-self.config.gamma)*loss_ner_adv
-            loss_rel = self.config.gamma*loss_rel + (1-self.config.gamma)*loss_rel_adv
+            loss_ner_adv_final = self.config.gamma*loss_ner + (1-self.config.gamma)*loss_ner_adv
+            loss_rel_adv_final = self.config.gamma*loss_rel + (1-self.config.gamma)*loss_rel_adv
         
         rel_score_prob = torch.sigmoid(selection_logits)
         rel_score_prob = rel_score_prob - (self.config.threshold_rel - 0.5)  # 超过了一定阈值之后才能判断关系
         pred_rel = torch.round(rel_score_prob).to(torch.int64)
         if is_test:
             return pred_ner, pred_rel
-        
+        if self.config.use_adv:
+            return loss_ner_adv_final, loss_rel_adv_final, pred_ner, pred_rel
         return loss_ner, loss_rel, pred_ner, pred_rel
     
     def masked_BCEloss(self, mask, selection_logits, selection_gold, weights_rel):
