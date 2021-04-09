@@ -37,16 +37,18 @@ class JointModel(nn.Module):
         self.layer_size = config.layer_size  # self.hidden_dim, 之前这里没有改
         self.num_token_type = config.num_token_type  # 实体类型的综述
         self.config = config
+
         if self.config.encode_name == 'gru':
+            self.gru = nn.GRU(config.embedding_dim, config.hidden_dim_lstm, num_layers=config.num_layers,
+                              batch_first=True,
+                              bidirectional=True, dropout=config.dropout_lstm)
             if embedding_pre is not None:  # 测试不加载词向量的情况
                 print("use pretrained embeddings")
                 self.word_embedding = nn.Embedding.from_pretrained(torch.FloatTensor(embedding_pre), freeze=False)
             else:
-                self.word_embedding = nn.Embedding(config.vocab_size, config.embedding_dim, padding_idx=config.pad_token_id)
+                self.word_embedding = nn.Embedding(config.vocab_size, config.embedding_dim,
+                                                   padding_idx=config.pad_token_id)
             # self.word_embedding = nn.Embedding(config.vocab_size, config.embedding_dim)
-            self.gru = nn.GRU(config.embedding_dim, config.hidden_dim_lstm, num_layers=config.num_layers,
-                              batch_first=True,
-                              bidirectional=True, dropout=config.dropout_lstm)
         elif self.config.encode_name == 'bert':
             print("use bert")
             # self.bert = BertModel.from_pretrained('../pretrained/bert-base-chinese')
@@ -188,7 +190,10 @@ class JointModel(nn.Module):
         '''
         
         if self.config.encode_name == 'albert':
-            output_lstm = self.albert(data_item['text_tokened'].to(torch.int64), data_item['mask_tokens'])[0]
+            # embeddings = self.word_embedding(data_item['text_tokened'].to(torch.int64))  # 要转化为int64
+            # if self.config.use_dropout:
+            #     embeddings = self.dropout_embedding_layer(embeddings)
+            output_lstm = self.albert(data_item['text_tokened'].to(torch.int64), attention_mask=data_item['mask_tokens'])[0]
         elif self.config.encode_name == 'bert':
             output_lstm = self.bert(data_item['text_tokened'].to(torch.int64), data_item['mask_tokens'])[0]
         else:
