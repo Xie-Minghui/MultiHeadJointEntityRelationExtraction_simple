@@ -134,7 +134,8 @@ class Trainer:
                 writer.add_scalar('Accuracy/eval_ner_f1', f1_ner_final_eval, epoch)
                 writer.add_scalar('Accuracy/eval_rel_ps', precision_score_final_eval, epoch)
             
-            if epoch > 16 and f1_ner_total > f1_ner_total_best:
+            if epoch > 16 and f1_ner_final_train > f1_ner_total_best:
+                f1_ner_total_best = f1_ner_final_train
                 torch.save({
                     'epoch': epoch+1, 'state_dict': model.state_dict(), 'f1_best': f1_ner_total,
                     'optimizer': self.optimizer.state_dict(),
@@ -152,7 +153,7 @@ class Trainer:
         pred_token_type = self.restore_ner(pred_ner, data_item['mask_tokens'])
         f1_ner = f1_score(data_item['token_type_origin'], pred_token_type)
         loss = (loss_ner + loss_rel)
-        loss.backward()
+        loss.backward()  # retain_graph=True
         self.optimizer.step()
         
         return loss_ner, loss_rel, pred_ner, pred_rel, f1_ner
@@ -375,7 +376,10 @@ if __name__ == '__main__':
     print("do not use tanh")
     print("学习率：{}".format(config.lr))
     print("teach_rate: {}".format(config.teach_rate))
-    embedding_pre = get_embedding_pre()
+    if config.use_pred_embedding:
+        embedding_pre = get_embedding_pre()
+    else:
+        embedding_pre = None
     data_processor = ModelDataPreparation(config)
     train_loader, dev_loader, test_loader = data_processor.get_train_dev_data(
         '../data/train_data.json',

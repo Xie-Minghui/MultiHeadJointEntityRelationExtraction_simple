@@ -23,7 +23,7 @@ class Config:
                  epochs=100,
                  vocab_size=16116,
                  embedding_dim=100,
-                 hidden_dim_lstm=64,
+                 hidden_dim_lstm=64,  #64
                  num_layers=3,  # 上去会超过内存
                  batch_size=16,
                  layer_size=64,
@@ -66,8 +66,11 @@ class Config:
         
         self.use_adv = False
         self.use_attention = False
+        self.use_pred_embedding = True
         self.alpha = 1e-3
         self.gamma = 0.5
+        
+        self.encode_name = 'gru'
     
     def get_token_types(self):
         token_type_bio = []

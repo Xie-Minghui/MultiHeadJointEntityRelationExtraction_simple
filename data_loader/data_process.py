@@ -111,11 +111,23 @@ class ModelDataPreparation:
             self.rel2id[rel] = i
 
         self.token2id = {}
-        with codecs.open('../data/vec.txt', 'r', encoding='utf-8') as f:
-            cnt = 0
-            for line in f.readlines():
-                self.token2id[line.split()[0]] = cnt
-                cnt += 1
+        if self.config.encode_name == 'gru':
+            with open('../data/vec.txt', 'r', encoding='utf-8') as f:  # ../data/vec.txt
+                cnt = 0
+                for line in f:
+                    word = line.split(' ')[0]
+                    self.token2id[word] = cnt
+                    cnt += 1
+        elif self.config.encode_name == 'albert':
+            with open('../pretrained/albert_chinese_tiny/vocab.txt', 'r', encoding='utf-8') as f:  # ../data/vec.txt
+                cnt = 0
+                for line in f:
+                    word = line.split(' ')[0]
+                    if word[0] == '#' and word[1] == '#':
+                        word = word[2]
+                    # print(word)
+                    self.token2id[word] = cnt
+                    cnt += 1
     
     def get_data(self, file_path, is_test=False, is_eval=False):
         data = []

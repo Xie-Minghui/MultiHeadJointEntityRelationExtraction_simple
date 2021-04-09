@@ -15,6 +15,9 @@ from torchcrf import CRF
 import numpy as np
 from utils.config import USE_CUDA
 # from utils.FocalLoss import Focal_loss
+import json
+from transformers import AlbertModel
+
 
 def setup_seed(seed):
     torch.manual_seed(seed)
@@ -25,7 +28,7 @@ class JointModel(nn.Module):
     def __init__(self, config, embedding_pre=None):
         super().__init__()
         setup_seed(1)
-        
+        print("do not use adv training")
         self.vocab_size = config.vocab_size
         self.embedding_dim = config.embedding_dim
         self.hidden_dim = config.hidden_dim_lstm
@@ -34,17 +37,26 @@ class JointModel(nn.Module):
         self.layer_size = config.layer_size  # self.hidden_dim, 之前这里没有改
         self.num_token_type = config.num_token_type  # 实体类型的综述
         self.config = config
-        if embedding_pre is not None:  # 测试不加载词向量的情况
-            print("use pretrained embeddings")
-            self.word_embedding = nn.Embedding.from_pretrained(torch.FloatTensor(embedding_pre), freeze=False)
-        else:
-            self.word_embedding = nn.Embedding(config.vocab_size, config.embedding_dim, padding_idx=config.pad_token_id)
-        # self.word_embedding = nn.Embedding(config.vocab_size, config.embedding_dim)
+        if self.config.encode_name == 'gru':
+            if embedding_pre is not None:  # 测试不加载词向量的情况
+                print("use pretrained embeddings")
+                self.word_embedding = nn.Embedding.from_pretrained(torch.FloatTensor(embedding_pre), freeze=False)
+            else:
+                self.word_embedding = nn.Embedding(config.vocab_size, config.embedding_dim, padding_idx=config.pad_token_id)
+            # self.word_embedding = nn.Embedding(config.vocab_size, config.embedding_dim)
+            self.gru = nn.GRU(config.embedding_dim, config.hidden_dim_lstm, num_layers=config.num_layers,
+                              batch_first=True,
+                              bidirectional=True, dropout=config.dropout_lstm)
+        elif self.config.encode_name == 'albert':
+            print("use albert")
+            with open('../pretrained/albert_chinese_tiny/config.json', 'r') as f:
+                config_albert = json.load(f)
+            # self.albert = AlbertModel(config_albert)
+            self.albert = AlbertModel.from_pretrained('../pretrained/albert_chinese_tiny')
+            print("加载albert成功")
         self.token_type_embedding = nn.Embedding(config.num_token_type, config.token_type_dim)
         self.rel_embedding = nn.Embedding(config.num_relations, config.rel_emb_size)
-        self.gru = nn.GRU(config.embedding_dim, config.hidden_dim_lstm, num_layers=config.num_layers, batch_first=True,
-                          bidirectional=True, dropout=config.dropout_lstm)
-        self.is_train = True
+        
         if USE_CUDA:
             self.weights_rel = (torch.ones(self.config.num_relations) * 50).cuda()
         else:
@@ -168,16 +180,20 @@ class JointModel(nn.Module):
         :return:
         :rtype:
         '''
-        # [batch_size, seq_len, embedding_dim]
-        embeddings = self.word_embedding(data_item['text_tokened'].to(torch.int64))  # 要转化为int64
-        if self.config.use_dropout:
-            embeddings = self.dropout_embedding_layer(embeddings)
-
-        if USE_CUDA:
-            hidden_init = torch.randn(2*self.num_layers, self.batch_size, self.hidden_dim).cuda()
+        
+        if self.config.encode_name == 'albert':
+            output_lstm = self.albert(data_item['text_tokened'].to(torch.int64), data_item['mask_tokens'])[0]
         else:
-            hidden_init = torch.randn(2 * self.num_layers, self.batch_size, self.hidden_dim)
-        output_lstm, h_n =self.gru(embeddings, hidden_init)
+            # [batch_size, seq_len, embedding_dim]
+            embeddings = self.word_embedding(data_item['text_tokened'].to(torch.int64))  # 要转化为int64
+            if self.config.use_dropout:
+                embeddings = self.dropout_embedding_layer(embeddings)
+    
+            if USE_CUDA:
+                hidden_init = torch.randn(2 * self.num_layers, self.batch_size, self.hidden_dim).cuda()
+            else:
+                hidden_init = torch.randn(2 * self.num_layers, self.batch_size, self.hidden_dim)
+            output_lstm, h_n = self.gru(embeddings, hidden_init)
         if self.config.use_attention:
             atten_weights = self.atten_network(output_lstm, h_n, is_test)
         # output_lstm [batch, seq_len, 2*hidden_dim]  h_n [2*num_layers, batch, hidden_dim]
@@ -190,6 +206,7 @@ class JointModel(nn.Module):
             ner_input = torch.cat((output_lstm, atten_weights), 2)
         else:
             ner_input = output_lstm
+        # print(output_lstm.shape)
         ner_score = self.ner_layer(ner_input)
         # 下面是使用CFR
         
@@ -233,7 +250,7 @@ class JointModel(nn.Module):
         rel_score_prob = rel_score_prob - (self.config.threshold_rel - 0.5)  # 超过了一定阈值之后才能判断关系
         pred_rel = torch.round(rel_score_prob).to(torch.int64)
         if is_test:
-            return pred_ner, pred_rel, atten_weights
+            return pred_ner, pred_rel
 
         return loss_ner, loss_rel, pred_ner, pred_rel
         
