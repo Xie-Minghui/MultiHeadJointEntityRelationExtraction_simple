@@ -141,12 +141,13 @@ class JointModel(nn.Module):
             
         loss_ner, loss_rel, pred_ner, selection_logits = self.compute_loss(data_item, embeddings, hidden_init, is_test=is_test)
         loss_total = loss_ner + loss_rel
-        if self.config.use_adv and not is_test:  # 进行对抗训练
-            raw_perturb = torch.autograd.grad(loss_total, embeddings)[0]  # 使用loss对embed求导，得出对结果影响最大的方向
+        if self.config.use_adv and not is_test and not is_eval:  # 进行对抗训练
+            raw_perturb = torch.autograd.grad(loss_total, embeddings, retain_graph=True)[0]  # 使用loss对embed求导，得出对结果影响最大的方向
             normalized_per = F.normalize(raw_perturb, dim=1, p=2)
             normalized_per = F.normalize(normalized_per, dim=2, p=2)
             perturb = self.config.alpha * math.sqrt(self.config.embedding_dim) * normalized_per.detach()
             perturb_embeddings = perturb + embeddings
+            # perturb_embeddings = embeddings
             loss_ner_adv, loss_rel_adv, _, _ = self.compute_loss(data_item, perturb_embeddings, hidden_init, is_test=is_test)
             loss_ner_adv_final = self.config.gamma*loss_ner + (1-self.config.gamma)*loss_ner_adv
             loss_rel_adv_final = self.config.gamma*loss_rel + (1-self.config.gamma)*loss_rel_adv
@@ -156,7 +157,7 @@ class JointModel(nn.Module):
         pred_rel = torch.round(rel_score_prob).to(torch.int64)
         if is_test:
             return pred_ner, pred_rel
-        if self.config.use_adv:
+        if self.config.use_adv and not is_eval:
             return loss_ner_adv_final, loss_rel_adv_final, pred_ner, pred_rel
         return loss_ner, loss_rel, pred_ner, pred_rel
     
