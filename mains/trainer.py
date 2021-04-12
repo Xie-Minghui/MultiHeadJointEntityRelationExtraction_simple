@@ -259,6 +259,8 @@ class Trainer:
             item = item.cpu().numpy()
             if math.fabs(item[2]) < 0.1:
                 continue
+            if item[0] >= length or item[1] >= length:  # 预测不能超过句子长度
+                continue
             pred_rel_list.append([item[0], item[1], self.id2rel[item[2]]])
         token_pred = []
         cnt = 0

@@ -160,7 +160,7 @@ class ModelDataPreparation:
                 
                 text_tokened = self.get_rid_unkonwn_word(text_tokened)
                 # if self.config.encode_name == 'bert' or self.config.encode_name == 'albert':
-                #     text_tokened = text_tokened + ['[SEP]']  # 当只有单个句子的时候，仍需要[SEP]
+                #     text_tokened = text_tokened + ['[SEP]']  # 当只有单个句子的时候，仍需要[SEP]  # 预测的时候会将[SEP也包含进去]
                 if not is_test:
                     token_type_list, predict_rel_list, predict_location_list, have_error = self.subject_object_labeling(
                         spo_list=spo_list, text_tokened=text_tokened
@@ -199,7 +199,8 @@ class ModelDataPreparation:
             batch_size=self.config.batch_size,
             collate_fn=dataset.collate_fn,
             shuffle=False,
-            drop_last=True
+            drop_last=True,
+            num_workers=4
         )
         return data_loader
          

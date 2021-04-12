@@ -147,7 +147,6 @@ class JointModel(nn.Module):
             normalized_per = F.normalize(normalized_per, dim=2, p=2)
             perturb = self.config.alpha * math.sqrt(self.config.embedding_dim) * normalized_per.detach()
             perturb_embeddings = perturb + embeddings
-            # perturb_embeddings = embeddings
             loss_ner_adv, loss_rel_adv, _, _ = self.compute_loss(data_item, perturb_embeddings, hidden_init, is_test=is_test)
             loss_ner_adv_final = self.config.gamma*loss_ner + (1-self.config.gamma)*loss_ner_adv
             loss_rel_adv_final = self.config.gamma*loss_rel + (1-self.config.gamma)*loss_rel_adv
