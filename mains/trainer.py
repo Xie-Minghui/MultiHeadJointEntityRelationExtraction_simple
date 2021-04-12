@@ -16,7 +16,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm
 from utils.config import Config, USE_CUDA
-from modules.joint_model import JointModel
+from modules.joint_model_adv import JointModel
 from data_loader.data_process import ModelDataPreparation
 import math
 
@@ -145,14 +145,14 @@ class Trainer:
                 'r'+str("%.2f"%(loss_rel_total/self.num_sample_total)) + '.pth'
                 )
                 
-            
-    
     def train_batch(self, data_item):
         self.optimizer.zero_grad()
         loss_ner, loss_rel, pred_ner, pred_rel = self.model(data_item)
         pred_token_type = self.restore_ner(pred_ner, data_item['mask_tokens'])
         f1_ner = f1_score(data_item['token_type_origin'], pred_token_type)
         loss = (loss_ner + loss_rel)
+        # loss_ner.backward(retain_graph=True)
+        # loss_rel.backward()
         loss.backward()  # retain_graph=True
         self.optimizer.step()
         

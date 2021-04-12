@@ -19,9 +19,9 @@ else:
 
 class Config:
     def __init__(self,
-                 lr=0.001,
+                 lr=1e-3,
                  epochs=100,
-                 vocab_size=16116,
+                 vocab_size=21128,  #16116,
                  embedding_dim=100,
                  hidden_dim_lstm=64,  # 未加载 64, bert 384, albert 156,
                  num_layers=3,  # 上去会超过内存
@@ -64,13 +64,13 @@ class Config:
         self.rel_emb_size = 64
         self.pad_token_id = 0
         
-        self.use_adv = False
+        self.use_adv = True
         self.use_attention = False
-        self.use_pred_embedding = False
+        self.use_pred_embedding = True
         self.alpha = 1e-3
         self.gamma = 0.5
         
-        self.encode_name = 'gru'
+        self.encode_name = 'albert'
     
     def get_token_types(self):
         token_type_bio = []

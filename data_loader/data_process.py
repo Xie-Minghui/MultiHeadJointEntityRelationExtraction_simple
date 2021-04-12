@@ -25,6 +25,7 @@ class ModelDataPreparation:
     def __init__(self, config):
         self.config = config
         self.get_type_rel2id()
+        # print(self.token2id)
     
     def subject_object_labeling(self, spo_list, text_tokened):
         # 在列表 k 中确定列表 q 的位置
@@ -122,18 +123,18 @@ class ModelDataPreparation:
             with open('../pretrained/bert-base-chinese/vocab.txt', 'r', encoding='utf-8') as f:  # ../data/vec.txt
                 cnt = 0
                 for line in f:
-                    word = line.split(' ')[0]
-                    if word[0] == '#' and word[1] == '#':
-                        word = word[2]
+                    word = line.split(' ')[0].strip()
+                    # if word[0] == '#' and word[1] == '#':
+                    #     word = word[2]
                     self.token2id[word] = cnt
                     cnt += 1
         elif self.config.encode_name == 'albert':
             with open('../pretrained/albert_chinese_tiny/vocab.txt', 'r', encoding='utf-8') as f:  # ../data/vec.txt
                 cnt = 0
                 for line in f:
-                    word = line.split(' ')[0]
-                    if word[0] == '#' and word[1] == '#':
-                        word = word[2]
+                    word = line.split(' ')[0].strip()
+                    # if word[0] == '#' and word[1] == '#':
+                    #     word = word[2]
                     # print(word)
                     self.token2id[word] = cnt
                     cnt += 1
@@ -158,6 +159,8 @@ class ModelDataPreparation:
                 token_type_list, predict_rel_list, predict_location_list, token_type_origin = None, None, None, None
                 
                 text_tokened = self.get_rid_unkonwn_word(text_tokened)
+                # if self.config.encode_name == 'bert' or self.config.encode_name == 'albert':
+                #     text_tokened = text_tokened + ['[SEP]']  # 当只有单个句子的时候，仍需要[SEP]
                 if not is_test:
                     token_type_list, predict_rel_list, predict_location_list, have_error = self.subject_object_labeling(
                         spo_list=spo_list, text_tokened=text_tokened
@@ -169,6 +172,7 @@ class ModelDataPreparation:
                         'predict_rel_list': predict_rel_list, 'predict_location_list': predict_location_list}
                 # print(self.token2id[' '])
                 item['text_tokened'] = [self.token2id[x] for x in item['text_tokened']]
+                # print(item['text_tokened'])
                 if not is_test:
                     item['token_type_list'] = [self.token_type2id[x] for x in item['token_type_list']]
                     # item['predict_rel_list'] = [self.rel2id[x] for x in item['predict_rel_list']]
