@@ -104,7 +104,7 @@ class JointModel(nn.Module):
         # self.dropout_lstm_layer = torch.nn.Dropout(config.dropout_lstm)
         self.crf_model = CRF(self.num_token_type, batch_first=True)
         
-        if self.config.use_attention:
+        if self.config.use_attention or self.config.use_jieba:
             self.ner_layer = nn.Linear(config.hidden_dim_lstm*2 + 1, config.num_token_type)
             self.selection_u = nn.Linear(self.hidden_dim * 2 + self.config.token_type_dim + 1, config.rel_emb_size)
             self.selection_v = nn.Linear(self.hidden_dim * 2 + self.config.token_type_dim + 1, config.rel_emb_size)
@@ -231,6 +231,9 @@ class JointModel(nn.Module):
             ner_input = torch.cat((output_lstm, atten_weights), 2)
         else:
             ner_input = output_lstm
+        
+        if self.config.use_jieba:
+            ner_input = torch.cat((output_lstm, data_item['jieba_cut_vector']))
         # print(output_lstm.shape)
         ner_score = self.ner_layer(ner_input)
         # 下面是使用CFR
