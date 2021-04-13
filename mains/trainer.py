@@ -87,11 +87,13 @@ class Trainer:
         for epoch in range(self.config.epochs):
             print("Epoch: {}".format(epoch))
             pbar = tqdm(enumerate(self.train_dataset), total=len(self.train_dataset))
-            loss_total, loss_ner_total, loss_rel_total, f1_ner_total, correct_score_total = 0, 0, 0, 0, 0
+            loss_ner_total, loss_rel_total, f1_ner_total, correct_score_total = 0, 0, 0, 0
             for i, data_item in pbar:
                 loss_ner, loss_rel, pred_ner, pred_rel, f1_ner = self.train_batch(data_item)
 
-                loss_total += (float(loss_ner) + float(loss_rel))
+                # loss_total += (float(loss_ner) + float(loss_rel))
+                # loss_ner_total += loss_ner
+                # loss_rel_total += loss_rel
                 loss_ner_total += float(loss_ner)
                 loss_rel_total += float(loss_rel)
                 f1_ner_total += f1_ner
@@ -119,7 +121,7 @@ class Trainer:
             # neptune.log_metric("train ner f1 score", f1_ner_total/self.num_sample_total*self.config.batch_size)
             # neptune.log_metric("train rel precission score", correct_score_total / len(self.train_dataset))
 
-            # tensorboard 记录代码
+            # 实验效果记录模块 tensorboard 记录代码
             writer.add_scalar('Loss/train_ner_loss', ner_loss_final_train, epoch)
             writer.add_scalar('Loss/train_rel_loss', rel_loss_final_train, epoch)
             writer.add_scalar('Accuracy/train_ner_f1', f1_ner_final_train, epoch)
@@ -134,6 +136,7 @@ class Trainer:
                 writer.add_scalar('Accuracy/eval_ner_f1', f1_ner_final_eval, epoch)
                 writer.add_scalar('Accuracy/eval_rel_ps', precision_score_final_eval, epoch)
             
+            # 模型保存模块
             if epoch > 16 and f1_ner_final_train > f1_ner_total_best:
                 f1_ner_total_best = f1_ner_final_train
                 torch.save({
@@ -163,7 +166,7 @@ class Trainer:
         self.model.train(False)
         pbar_dev = tqdm(enumerate(self.dev_dataset), total=len(self.dev_dataset))
         
-        loss_total, loss_ner_total, loss_rel_total, f1_ner_total, correct_score_total = 0, 0, 0, 0, 0
+        loss_ner_total, loss_rel_total, f1_ner_total, correct_score_total = 0, 0, 0, 0
         samle_num = len(self.dev_dataset) * self.config.batch_size
         for i, data_item in pbar_dev:
             loss_ner, loss_rel, pred_ner, pred_rel = self.model(data_item, is_eval=True)
