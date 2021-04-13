@@ -24,7 +24,8 @@ def test():
     path_test = '../deploy/test.json'  # 部署的时候，manage.py的路径为当前路径
     # PATH_MODEL = '../models/27m-p0.83f0.83n2.32r0.66.pth'  # 对应的是添加了tanh的joint_model
     # PATH_MODEL = '../models/28m-p0.86f0.88n1.50r0.56.pth'  # 对应的是添加了tanh的joint_model
-    PATH_MODEL = '../models/25m-p0.86f0.87n1.64r0.56.pth'  # 对应的是添加了tanh的joint_model_adv(实际没有adv)
+    # PATH_MODEL = '../models/25m-p0.86f0.87n1.64r0.56.pth'  # 对应的是添加了tanh的joint_model_adv(实际没有adv)
+    PATH_MODEL = '../models/40m-p0.88f0.90n1.24r0.45.pth'  # 对应的是添加了tanh的joint_model_adv(实际没有adv)
     config = Config()
     num_sample_test = 0
     with open(path_test, 'r', encoding='utf-8') as f:  # 统计预测样本数，设置为一个批次

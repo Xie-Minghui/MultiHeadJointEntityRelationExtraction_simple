@@ -16,7 +16,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm
 from utils.config import Config, USE_CUDA
-from modules.joint_model_adv import JointModel
+from modules.joint_model import JointModel
 from data_loader.data_process import ModelDataPreparation
 import math
 

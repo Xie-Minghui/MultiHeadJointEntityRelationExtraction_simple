@@ -21,9 +21,9 @@ class Config:
     def __init__(self,
                  lr=1e-3,
                  epochs=100,
-                 vocab_size=21128,  #16116,
+                 vocab_size=21128,  #16116,21128
                  embedding_dim=100,
-                 hidden_dim_lstm=64,  # 未加载 64, bert 384, albert 156,
+                 hidden_dim_lstm=156,  # 未加载 64, bert 384, albert 156,
                  num_layers=3,  # 上去会超过内存
                  batch_size=16,
                  layer_size=64,
