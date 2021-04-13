@@ -158,23 +158,28 @@ class ModelDataPreparation:
                 text = data_item['text']
                 text_tokened = [c.lower() for c in text]  # 中文使用简单的分词
                 token_type_list, predict_rel_list, predict_location_list, token_type_origin = None, None, None, None
+                text_tokened = self.get_rid_unkonwn_word(text_tokened)
                 
-                jieba_cut = jieba.cut(text)
-                jieba_cut = '$'.join(jieba_cut)
+                # cut_vector = None
+                # if self.config.use_jieba:
+                jieba_cut = jieba.cut(''.join(text_tokened))
+                jieba_cut = '`'.join(jieba_cut)
                 cut_vector = []
                 for i in range(len(jieba_cut)):
-                    if jieba_cut[i] == '$':
+                    if jieba_cut[i] == '`':
                         continue
                     if i == 0:
                         cut_vector.append(1)
                         continue
-                    if jieba_cut[i-1] == '$':
+                    if jieba_cut[i-1] == '`':
                         cut_vector.append(1)
                     else:
                         cut_vector.append(0)
-                # cut_vector.append(1)  # 最后的位置设为1
-                
-                # text_tokened = self.get_rid_unkonwn_word(text_tokened)
+                    # cut_vector.append(1)  # 最后的位置设为1
+                if len(cut_vector) != len(text_tokened):
+                    print(text)
+                    print(text_tokened)
+                assert len(cut_vector) == len(text_tokened), '两者长度不相等'
                 # if self.config.encode_name == 'bert' or self.config.encode_name == 'albert':
                 #     text_tokened = text_tokened + ['[SEP]']  # 当只有单个句子的时候，仍需要[SEP]  # 预测的时候会将[SEP也包含进去]
                 if not is_test:
@@ -217,10 +222,11 @@ class ModelDataPreparation:
             collate_fn=dataset.collate_fn,
             shuffle=False,
             drop_last=True,
-            num_workers=4
+            num_workers=0  # 当num_workers > 0时，DataLoader的数据不能放入cuda
+            # 具体原因见：https://blog.csdn.net/yyhaohaoxuexi/article/details/90718501
         )
         return data_loader
-         
+        
     def get_train_dev_data(self, path_train=None, path_dev=None, path_test=None):
         train_loader, dev_loader, test_loader = None, None, None
         if path_train is not None:
@@ -243,6 +249,7 @@ class Dataset(torch.utils.data.Dataset):
         token_type_list = self.data[index]['token_type_list']
         predict_rel_list = self.data[index]['predict_rel_list']
         predict_location_list = self.data[index]['predict_location_list']
+        jieba_cut_vector = self.data[index]['jieba_cut_vector']
         
         data_info = {}
         for key in self.data[0].keys():

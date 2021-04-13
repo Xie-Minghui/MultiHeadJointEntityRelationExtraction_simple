@@ -233,7 +233,7 @@ class JointModel(nn.Module):
             ner_input = output_lstm
         
         if self.config.use_jieba:
-            ner_input = torch.cat((output_lstm, data_item['jieba_cut_vector']))
+            ner_input = torch.cat((output_lstm, data_item['jieba_cut_vector'].unsqueeze(2)), 2)
         # print(output_lstm.shape)
         ner_score = self.ner_layer(ner_input)
         # 下面是使用CFR
@@ -261,6 +261,8 @@ class JointModel(nn.Module):
             rel_input = torch.cat((output_lstm, label_embeddings, atten_weights), 2)
         else:
             rel_input = torch.cat((output_lstm, label_embeddings), 2)
+        if self.config.use_jieba:
+            rel_input = torch.cat((output_lstm, label_embeddings, data_item['jieba_cut_vector'].unsqueeze(2)), 2)
         # rel_score_matrix = self.getHeadSelectionScores(rel_input)  # [batch, seq_len, seq_len, num_relation]
         B, L, H = rel_input.size()
         # u = torch.tanh(self.selection_u(rel_input)).unsqueeze(1).expand(B, L, L, -1)  # (B,L,L,R)

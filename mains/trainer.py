@@ -375,6 +375,8 @@ if __name__ == '__main__':
     config = Config()
     if config.use_attention:
         print("use attention")
+    if config.use_jieba:
+        print("use jieba")
     print("do not use tanh")
     print("学习率：{}".format(config.lr))
     print("teach_rate: {}".format(config.teach_rate))
