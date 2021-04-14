@@ -17,7 +17,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm
 from utils.config import Config, USE_CUDA
-from modules.joint_model import JointModel
+
 from data_loader.data_process import ModelDataPreparation
 import math
 
@@ -32,6 +32,12 @@ import random
 # import neptune
 from torch.utils.tensorboard import SummaryWriter
 import os
+
+config_global = Config()
+if config_global.use_adv:
+    from modules.joint_model_adv import JointModel
+else:
+    from modules.joint_model import JointModel
 
 writer = SummaryWriter('../record/log')  # tensorboard日志文件的存储目录
 

@@ -9,6 +9,7 @@ file description:：
 
 """
 import torch
+from utils.arg_config import args
 
 if torch.cuda.is_available():
     USE_CUDA = True
@@ -76,7 +77,22 @@ class Config:
         
         self.use_resume = False
         self.checkpoint_path_resume = '20m-p0.79f0.81n2.39r0.87.pth'
-    
+        
+        self.encode_name = args['encode_name']
+        self.use_pred_embedding = args['use_pred_embedding']
+        self.use_adv = args['use_adv']
+        
+        if self.encode_name == 'gru':
+            self.vocab_size = 16116
+            self.hidden_dim_lstm = 64
+        elif self.encode_name == 'albert':
+            self.vocab_size = 21128
+            self.hidden_dim_lstm = 156
+        elif self.encode_name == 'bert':
+            self.vocab_size = 21128
+            self.hidden_dim_lstm = 384
+
+        
     def get_token_types(self):
         token_type_bio = []
         for token_type in self.token_types_origin:
