@@ -31,6 +31,7 @@ import codecs
 import random
 # import neptune
 from torch.utils.tensorboard import SummaryWriter
+import os
 
 writer = SummaryWriter('../record/log')  # tensorboard日志文件的存储目录
 
@@ -70,19 +71,35 @@ class Trainer:
         self.id2token_type = {}
         for i, token_type in enumerate(self.config.token_types):
             self.id2token_type[i] = token_type
+    
+    def resume_work(self):
+        checkpoint = torch.load(self.config.checkpoint_path_resume)
+        self.model.load_state_dict(checkpoint['model_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_dict'])
+        self.lr_scheduler.load_state_dict(checkpoint['lr_scheduler_dict'])
+        
+        return checkpoint['epoch'] + 1
         
     def controller(self):
+        
         self.print_model()
+        # 断点继续训练的代码
+        epoch_start = 0
+        if self.config.use_resume:
+            epoch_start = self.resume_work()
+            
         precision_score_final_eval_best = 0
-        for epoch in range(self.config.epochs):
+        for epoch in range(epoch_start, self.config.epochs):
             print("Epoch: {}".format(epoch))
-            self.train(epoch)
+            ner_loss_final_train, rel_loss_final_train, f1_ner_final_train, precision_score_final_train \
+                = self.train(epoch)
             
             if (epoch + 1) % 1 == 0:
                 self.predict_sample()
 
             if (epoch + 1) % 1 == 0:
-                ner_loss_final_eval, rel_loss_final_eval, f1_ner_final_eval, precision_score_final_eval = self.evaluate(epoch)
+                ner_loss_final_eval, rel_loss_final_eval, f1_ner_final_eval, precision_score_final_eval \
+                    = self.evaluate(epoch)
                 # 模型保存模块
                 if epoch > 16 and precision_score_final_eval > precision_score_final_eval_best:
                     precision_score_final_eval_best = precision_score_final_eval
@@ -91,12 +108,32 @@ class Trainer:
                         'f1_best': f1_ner_final_eval,
                         'optimizer': self.optimizer.state_dict(),
                     },
-                        self.config.checkpoint_path + str(epoch) + 'm-' + 'p' + str(
+                        self.config.model_best_save_path + str(epoch) + 'm-' + 'p' + str(
                             "%.2f" % precision_score_final_eval) +
                         'f' + str("%.2f" % f1_ner_final_eval) + 'n' + str(
                             "%.2f" % ner_loss_final_eval) +
                         'r' + str("%.2f" % rel_loss_final_eval) + '.pth'
                     )
+            # 用于断点继续训练, 这里面保存的是训练时的评价指标，因为目前checkpoint不和eval过程产生联系
+            if epoch > 5 and (epoch+1) % 5 == 0:
+                checkpoint = {
+                    'epoch': epoch,
+                    'model_dict': self.model.state_dict(), 'optimizer_dict': self.optimizer.state_dict(),
+                    'scheduler_dict': self.scheduler.state_dict(),
+                    'precision_score': precision_score_final_train,
+                    'f1_score': f1_ner_final_train,
+                    'ner_loss': ner_loss_final_train,
+                    'rel_loss': rel_loss_final_train,
+                }
+                if not os.path.exists(self.config.checkpoint_path):
+                    os.mkdir(self.config.checkpoint_path)
+                torch.save(checkpoint,
+                           self.config.checkpoint_path + str(epoch) + 'm-' + 'ck' + 'p' + str(
+                               "%.2f" % precision_score_final_train) +
+                           'f' + str("%.2f" % f1_ner_final_train) + 'n' + str(
+                               "%.2f" % ner_loss_final_train) +
+                           'r' + str("%.2f" % rel_loss_final_train) + '.pth'
+                           )
     
     def recorder(self, epoch, ner_loss_final, rel_loss_final, f1_ner_final, precision_score_final, mode):
         # 实验效果记录模块 tensorboard 记录代码
@@ -171,6 +208,8 @@ class Trainer:
 
         self.recorder(epoch, ner_loss_final_train, rel_loss_final_train, f1_ner_final_train, precision_score_final_train,
                      mode='train')
+        
+        return ner_loss_final_train, rel_loss_final_train, f1_ner_final_train, precision_score_final_train
     
     def evaluate(self, epoch):
         print('STARTING EVALUATION...')

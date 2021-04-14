@@ -50,7 +50,7 @@ class Config:
         self.vocab_file = '../data/vocab.txt'
         self.max_seq_length = 256
         self.num_sample = 20480
-        self.num_sample_eval = 320
+        self.num_sample_eval = 10000  # 320
 
         self.dropout_embedding = 0.1  # 从0.2到0.1
         self.dropout_lstm = 0.1
@@ -60,7 +60,8 @@ class Config:
         self.use_dropout = True
         self.threshold_rel = 0.9  # 从0.7到0.95
         self.teach_rate = 0.9
-        self.checkpoint_path = '../models/'
+        self.model_best_save_path = '../models/'
+        self.checkpoint_path = '../checkpoints/'
         self.rel_emb_size = 64
         self.pad_token_id = 0
         
@@ -72,6 +73,9 @@ class Config:
         
         self.encode_name = 'albert'
         self.use_jieba = False
+        
+        self.use_resume = False
+        self.checkpoint_path_resume = '20m-p0.79f0.81n2.39r0.87.pth'
     
     def get_token_types(self):
         token_type_bio = []

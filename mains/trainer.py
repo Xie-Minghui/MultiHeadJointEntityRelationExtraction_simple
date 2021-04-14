@@ -143,7 +143,7 @@ class Trainer:
                     'epoch': epoch+1, 'state_dict': model.state_dict(), 'f1_best': f1_ner_total,
                     'optimizer': self.optimizer.state_dict(),
                 },
-                self.config.checkpoint_path + str(epoch) + 'm-' + 'p' + str("%.2f"%(correct_score_total / len(self.train_dataset))) +
+                self.config.model_best_save_path + str(epoch) + 'm-' + 'p' + str("%.2f"%(correct_score_total / len(self.train_dataset))) +
                 'f'+str("%.2f"%(f1_ner_total/self.num_sample_total*self.config.batch_size)) + 'n'+str("%.2f"%(loss_ner_total/self.num_sample_total)) +
                 'r'+str("%.2f"%(loss_rel_total/self.num_sample_total)) + '.pth'
                 )
