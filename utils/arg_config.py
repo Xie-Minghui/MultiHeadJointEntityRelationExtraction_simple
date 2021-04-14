@@ -11,7 +11,7 @@ file description:：
 import argparse
 
 
-def argparse():
+def parse_args():
     parser = argparse.ArgumentParser(description="mutable parameters")
     parser.add_argument('-encode', '--encode_name', help='choose from gru, bert, albert, joint_model.py', default='gru')
     # bool变量，由于parser的原因，使用int类型，非0的表示True
@@ -24,4 +24,4 @@ def argparse():
     return args
 
 
-args = argparse()
+args = parse_args()

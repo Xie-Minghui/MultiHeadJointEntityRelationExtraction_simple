@@ -15,9 +15,12 @@ sys.path.append('/home/xieminghui/Projects/MultiHeadJointEntityRelationExtractio
 from data_loader.data_process import ModelDataPreparation
 from mains.trainer_std import Trainer
 from utils.config import Config, USE_CUDA
-from modules.joint_model import JointModel
-import json
 
+config_global = Config()
+if config_global.use_adv:
+    from modules.joint_model_adv import JointModel
+else:
+    from modules.joint_model import JointModel
 
 def test():
     # path_test = './test.json'
