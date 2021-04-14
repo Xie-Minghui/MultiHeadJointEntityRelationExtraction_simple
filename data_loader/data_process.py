@@ -160,26 +160,24 @@ class ModelDataPreparation:
                 token_type_list, predict_rel_list, predict_location_list, token_type_origin = None, None, None, None
                 text_tokened = self.get_rid_unkonwn_word(text_tokened)
                 
-                # cut_vector = None
-                # if self.config.use_jieba:
-                jieba_cut = jieba.cut(''.join(text_tokened))
-                jieba_cut = '`'.join(jieba_cut)
-                cut_vector = []
-                for i in range(len(jieba_cut)):
-                    if jieba_cut[i] == '`':
-                        continue
-                    if i == 0:
-                        cut_vector.append(1)
-                        continue
-                    if jieba_cut[i-1] == '`':
-                        cut_vector.append(1)
-                    else:
-                        cut_vector.append(0)
+                # jieba_cut = jieba.cut(''.join(text_tokened))
+                # jieba_cut = '`'.join(jieba_cut)
+                # cut_vector = []
+                # for i in range(len(jieba_cut)):
+                #     if jieba_cut[i] == '`':
+                #         continue
+                #     if i == 0:
+                #         cut_vector.append(1)
+                #         continue
+                #     if jieba_cut[i-1] == '`':
+                #         cut_vector.append(1)
+                #     else:
+                #         cut_vector.append(0)
                     # cut_vector.append(1)  # 最后的位置设为1
-                if len(cut_vector) != len(text_tokened):
-                    print(text)
-                    print(text_tokened)
-                assert len(cut_vector) == len(text_tokened), '两者长度不相等'
+                # if len(cut_vector) != len(text_tokened):
+                #     print(text)
+                #     print(text_tokened)
+                # assert len(cut_vector) == len(text_tokened), '两者长度不相等'
                 # if self.config.encode_name == 'bert' or self.config.encode_name == 'albert':
                 #     text_tokened = text_tokened + ['[SEP]']  # 当只有单个句子的时候，仍需要[SEP]  # 预测的时候会将[SEP也包含进去]
                 if not is_test:
@@ -191,7 +189,7 @@ class ModelDataPreparation:
                         continue
                 item = {'text_tokened': text_tokened, 'token_type_list': token_type_list,
                         'predict_rel_list': predict_rel_list, 'predict_location_list': predict_location_list,
-                        'jieba_cut_vector': cut_vector}
+                       }  #  'jieba_cut_vector': cut_vector
                 # print(self.token2id[' '])
                 item['text_tokened'] = [self.token2id[x] for x in item['text_tokened']]
                 # print(item['text_tokened'])
@@ -249,7 +247,7 @@ class Dataset(torch.utils.data.Dataset):
         token_type_list = self.data[index]['token_type_list']
         predict_rel_list = self.data[index]['predict_rel_list']
         predict_location_list = self.data[index]['predict_location_list']
-        jieba_cut_vector = self.data[index]['jieba_cut_vector']
+        # jieba_cut_vector = self.data[index]['jieba_cut_vector']
         
         data_info = {}
         for key in self.data[0].keys():
@@ -329,7 +327,7 @@ class Dataset(torch.utils.data.Dataset):
             item_info[key] = [d[key] for d in data_batch]
         token_type_list, predict_rel_list, pred_rel_matrix, predict_location_list = None, None, None, None
         text_tokened, mask_tokens = merge(item_info['text_tokened'])
-        jieba_cut_vector, _ = merge(item_info['jieba_cut_vector'])
+        # jieba_cut_vector, _ = merge(item_info['jieba_cut_vector'])
         
         if not self.is_test:
             token_type_list, _ = merge(item_info['token_type_list'])
@@ -342,11 +340,11 @@ class Dataset(torch.utils.data.Dataset):
         if USE_CUDA:
             text_tokened = text_tokened.contiguous().cuda()
             mask_tokens = mask_tokens.contiguous().cuda()
-            jieba_cut_vector = jieba_cut_vector.contiguous().cuda()
+            # jieba_cut_vector = jieba_cut_vector.contiguous().cuda()
         else:
             text_tokened = text_tokened.contiguous()
             mask_tokens = mask_tokens.contiguous()
-            jieba_cut_vector = jieba_cut_vector.contiguous()
+            # jieba_cut_vector = jieba_cut_vector.contiguous()
 
         if not self.is_test:
             if USE_CUDA:
