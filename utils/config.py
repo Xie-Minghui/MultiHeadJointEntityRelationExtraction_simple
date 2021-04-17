@@ -26,7 +26,7 @@ class Config:
                  embedding_dim=100,
                  hidden_dim_lstm=156,  # 未加载 64, bert 384, albert 156,
                  num_layers=3,  # 上去会超过内存
-                 batch_size=16,
+                 batch_size=8,
                  layer_size=64,
                  token_type_dim=12
                  ):
@@ -50,8 +50,8 @@ class Config:
         self.num_token_type = len(self.token_types)
         self.vocab_file = '../data/vocab.txt'
         self.max_seq_length = 256
-        self.num_sample = 20480
-        self.num_sample_eval = 10000  # 320
+        self.num_sample = 170480
+        self.num_sample_eval = 20480  # 320
 
         self.dropout_embedding = 0.1  # 从0.2到0.1
         self.dropout_lstm = 0.1
@@ -76,7 +76,7 @@ class Config:
         self.use_jieba = False
         
         self.use_resume = False
-        self.checkpoint_path_resume = '20m-p0.79f0.81n2.39r0.87.pth'
+        self.checkpoint_path_resume = self.checkpoint_path + '24m-ckp0.86f0.88n1.61r0.57.pth'
         
         self.encode_name = args['encode_name']
         self.use_pred_embedding = args['use_pred_embedding']

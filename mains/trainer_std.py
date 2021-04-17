@@ -67,8 +67,6 @@ class Trainer:
             self.model = self.model.cuda()
         
         self.get_id2rel()
-
-        self.num_sample_total = len(train_loader) * self.config.batch_size
     
     def get_id2rel(self):
         self.id2rel = {}
@@ -82,7 +80,7 @@ class Trainer:
         checkpoint = torch.load(self.config.checkpoint_path_resume)
         self.model.load_state_dict(checkpoint['model_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_dict'])
-        self.lr_scheduler.load_state_dict(checkpoint['lr_scheduler_dict'])
+        self.scheduler.load_state_dict(checkpoint['scheduler_dict'])
         
         return checkpoint['epoch'] + 1
         
@@ -92,7 +90,16 @@ class Trainer:
         # 断点继续训练的代码
         epoch_start = 0
         if self.config.use_resume:
+            print("resume training...")
             epoch_start = self.resume_work()
+        if self.config.use_adv:
+            model_name = 'adv'
+        elif self.config.encode_name == 'gru':
+            model_name = 'gru'
+        elif self.config.encode_name == 'albert':
+            model_name = 'albert'
+        elif self.config.encode_name == 'bert':
+            model_name = 'bert'
             
         precision_score_final_eval_best = 0
         for epoch in range(epoch_start, self.config.epochs):
@@ -114,14 +121,14 @@ class Trainer:
                         'f1_best': f1_ner_final_eval,
                         'optimizer': self.optimizer.state_dict(),
                     },
-                        self.config.model_best_save_path + str(epoch) + 'm-' + 'p' + str(
+                        self.config.model_best_save_path + model_name + str(epoch) + 'm-' + 'p' + str(
                             "%.2f" % precision_score_final_eval) +
                         'f' + str("%.2f" % f1_ner_final_eval) + 'n' + str(
                             "%.2f" % ner_loss_final_eval) +
                         'r' + str("%.2f" % rel_loss_final_eval) + '.pth'
                     )
             # 用于断点继续训练, 这里面保存的是训练时的评价指标，因为目前checkpoint不和eval过程产生联系
-            if epoch > 5 and (epoch+1) % 5 == 0:
+            if epoch > 0 and (epoch+1) % 2 == 0:
                 checkpoint = {
                     'epoch': epoch,
                     'model_dict': self.model.state_dict(), 'optimizer_dict': self.optimizer.state_dict(),
@@ -134,7 +141,7 @@ class Trainer:
                 if not os.path.exists(self.config.checkpoint_path):
                     os.mkdir(self.config.checkpoint_path)
                 torch.save(checkpoint,
-                           self.config.checkpoint_path + str(epoch) + 'm-' + 'ck' + 'p' + str(
+                           self.config.checkpoint_path + model_name + str(epoch) + 'm-' + 'ck' + 'p' + str(
                                "%.2f" % precision_score_final_train) +
                            'f' + str("%.2f" % f1_ner_final_train) + 'n' + str(
                                "%.2f" % ner_loss_final_train) +
@@ -176,6 +183,7 @@ class Trainer:
     
     def train(self, epoch):
         print('STARTING TRAIN...')
+        self.num_sample_total = len(train_loader) * self.config.batch_size
         pbar = tqdm(enumerate(self.train_dataset), total=len(self.train_dataset))
         loss_total, loss_ner_total, loss_rel_total, f1_ner_total, correct_score_total = 0, 0, 0, 0, 0
         for i, data_item in pbar:
@@ -303,7 +311,7 @@ class Trainer:
         if data_item0 is None:
             data_item0 = data_item
             pred_ner0, pred_rel0 = pred_ner, pred_rel
-        x = random.randint(0, 15)
+        x = random.randint(0, 7)
         pred_ner, pred_rel = pred_ner0[x], pred_rel0[x]
         pred_rel_list = []
         length = len([c for c in data_item0['text'][x]])
