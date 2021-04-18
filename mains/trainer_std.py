@@ -117,7 +117,7 @@ class Trainer:
                 if epoch > 16 and precision_score_final_eval > precision_score_final_eval_best:
                     precision_score_final_eval_best = precision_score_final_eval
                     torch.save({
-                        'epoch': epoch + 1, 'state_dict': model.state_dict(), 'precision_best': precision_score_final_eval_best,
+                        'epoch': epoch + 1, 'model_dict': model.state_dict(), 'precision_best': precision_score_final_eval_best,
                         'f1_best': f1_ner_final_eval,
                         'optimizer': self.optimizer.state_dict(),
                     },
@@ -358,15 +358,19 @@ class Trainer:
         根据文本，命名实体识别结果和关系抽取结果，得到最终的关系三元组
         '''
         subject_all, object_all, rel_all = [], [], []
+        subject_type_all, object_type_all = [], []
         text = [c for c in data_item['text'][loc]]
         for item in pred_rel_list:
             subject, object, rel = [], [], []
             s_start, o_start = item[0], item[1]
+            
             if s_start == o_start:  # 防止自己和自己构成关系
                 continue
             if s_start >= len(text) or o_start >= len(text) or token_pred[s_start][0] != 'B' or token_pred[o_start][
                 0] != 'B':
                 continue
+            subject_type_all.append(token_pred[s_start][2:])
+            object_type_all.append(token_pred[o_start][2:])
             subject.append(text[s_start])
             object.append(text[o_start])
             s_start += 1
@@ -391,7 +395,7 @@ class Trainer:
                 rel_all.append(item[2])
         rel_triple = [[] for _ in range(len(rel_all))]
         for i in range(len(rel_all)):
-            rel_triple[i] = [object_all[i], subject_all[i], rel_all[i]]
+            rel_triple[i] = [object_all[i], subject_all[i], rel_all[i], object_type_all[i],  subject_type_all[i]]
         return rel_triple
 
 
