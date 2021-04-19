@@ -35,7 +35,7 @@ def build_graph(rel_triple_list):
     for rel_triple in rel_triple_list:
         if rel_triple is not None:
             for item in rel_triple:
-                print(item)
+                # print(item)
                 node_s = list(matcher.match(item[0], name=item[0]))
                 node_o = list(matcher.match(item[1], name=item[1]))
                 
@@ -55,6 +55,18 @@ def build_graph(rel_triple_list):
                 test_graph.create(rel)
 
 #创建节点
+def query_entity(name_entity):
+    
+    res_outgoing = test_graph.run("match (a{name:'%s'})-[rel]->(b) return a.name, b.name, rel" % name_entity).data()
+    res_incoming = test_graph.run("match (a)-[rel]->(b{name:'%s'}) return a.name, b.name, rel" % name_entity).data()
+    rel_outgoing, rel_incoming = [], []
+    for item in res_outgoing:
+        rel_outgoing.append([item['a.name'], item['rel']['type'], item['b.name']])
+    for item in res_incoming:
+        rel_incoming.append([item['a.name'], item['rel']['type'], item['b.name']])
+    
+    return rel_outgoing, rel_incoming
+
 
 if __name__ == '__main__':
     # rel_triple_list = [[['汉族', '李彦宏', '民族', 'Text', '人物'], ['175cm', '李彦宏', '身高', 'Number', '人物'], ['1968年11月', '李彦宏', '出生日期', 'Date', '人物'], ['山西阳泉', '李彦宏', '出生地', '地点', '人物']], [['李彦宏', '百度', '创始人', '人物', '企业'], ['李彦宏', '百度', '董事长', '人物', '企业']], [['1999年11月', '百度', '成立日期', 'Date', '企业']], [['马东敏', '李彦宏', '妻子', '人物', '人物'], ['李彦宏', '马东敏', '丈夫', '人物', '人物']], [], [['李富贵', '李彦宏', '父亲', '人物', '人物']]]
@@ -66,6 +78,14 @@ if __name__ == '__main__':
     print(tmp)
     print("*" * 50)
     for item in tmp:
-        print(item['a.name'], item['b.name'], item['r']['type'])
-    
+        print(item['a.name'], item['r']['type'], item['b.name'])
+    print("#"*50)
+    name = input("请输入你要查询的实体的名称：")
+    rel_outgoing, rel_incoming = query_entity(name)
+    print("出度")
+    for item in rel_outgoing:
+        print(item)
+    print("入度")
+    for item in rel_incoming:
+        print(item)
     # 后续要做的功能： 1，自定义查询； 2，将知识图谱转化为excel文件等惊醒保存
