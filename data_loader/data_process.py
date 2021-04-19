@@ -19,7 +19,7 @@ import torch
 import copy
 from utils.config import Config, USE_CUDA
 import codecs
-import jieba
+# import jieba
 
 
 class ModelDataPreparation:

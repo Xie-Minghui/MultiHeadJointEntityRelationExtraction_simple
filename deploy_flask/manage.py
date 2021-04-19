@@ -14,10 +14,10 @@ import json
 import sys
 sys.path.append('/home/xieminghui/Projects/MultiHeadJointEntityRelationExtraction_simple/')  # 添加路径
 
-from deploy.demo import test
-from py2neo import Graph
-from utils.neo4j_util import build_graph, query_entity
 
+from py2neo import Graph
+from utils.neo4j_util import build_graph, entity_query
+from deploy.demo import test
 
 # graph = Graph("http://localhost:7474", username="neo4j", password="root")
 
@@ -104,10 +104,10 @@ def flask_server():
 		# 		}
         return jsonify(res)
     
-    @app.route('/query_entity', method=['POST'])
+    @app.route('/query_entity', methods=['POST'])
     def query_entity():
         name_entity = request.values['name_entity']
-        rel_outgoing, rel_incoming = query_entity(name_entity, neo4j_graph)
+        rel_outgoing, rel_incoming = entity_query(name_entity, neo4j_graph)
         res_query = change_list2json([rel_outgoing, rel_incoming])
         return jsonify(res_query)
     

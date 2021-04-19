@@ -35,7 +35,7 @@ def build_graph(rel_triple_list, neo4j_graph):
 
 
 # 创建节点
-def query_entity(name_entity, neo4j_graph):
+def entity_query(name_entity, neo4j_graph):
     res_outgoing = neo4j_graph.run("match (a{name:'%s'})-[rel]->(b) return a.name, b.name, rel" % name_entity).data()
     res_incoming = neo4j_graph.run("match (a)-[rel]->(b{name:'%s'}) return a.name, b.name, rel" % name_entity).data()
     rel_outgoing, rel_incoming = [], []

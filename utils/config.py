@@ -81,7 +81,7 @@ class Config:
         self.encode_name = args['encode_name']
         self.use_pred_embedding = args['use_pred_embedding']
         self.use_adv = args['use_adv']
-        
+
         if self.encode_name == 'gru':
             self.vocab_size = 16116
             self.hidden_dim_lstm = 64
