@@ -15,25 +15,26 @@ import sys
 sys.path.append('/home/xieminghui/Projects/MultiHeadJointEntityRelationExtraction_simple/')  # 添加路径
 
 from deploy.demo import test
-# from py2neo import Graph
+from py2neo import Graph
+from utils.neo4j_util import build_graph, query_entity
 
 
 # graph = Graph("http://localhost:7474", username="neo4j", password="root")
 
 
-def build_nodes(node_record):
-    data = {"id": str(node_record.n._id), "label": next(iter(node_record.n.labels))}
-    data.update(node_record.n.properties)
-
-    return {"data": data}
-
-
-def build_edges(relation_record):
-    data = {"source": str(relation_record.r.start_node._id),
-            "target": str(relation_record.r.end_node._id),
-            "relationship": relation_record.r.rel.type}
-
-    return {"data": data}
+# def build_nodes(node_record):
+#     data = {"id": str(node_record.n._id), "label": next(iter(node_record.n.labels))}
+#     data.update(node_record.n.properties)
+#
+#     return {"data": data}
+#
+#
+# def build_edges(relation_record):
+#     data = {"source": str(relation_record.r.start_node._id),
+#             "target": str(relation_record.r.end_node._id),
+#             "relationship": relation_record.r.rel.type}
+#
+#     return {"data": data}
 
 
 def change_list2json(rel_triple_list):
@@ -57,11 +58,10 @@ def sent_split(text):
     
     return sentences_list
 
-
 def flask_server():
     
     app = Flask(__name__)
-    
+    neo4j_graph = Graph("http://localhost:7474", username="neo4j", password="root")
     @app.route("/")
     def index():
         return render_template("index_neo4j.html", version='V 0.1.2')
@@ -76,28 +76,40 @@ def flask_server():
         setences_list = sent_split(text)
         sentences_map_list = [{"text": text} for text in setences_list]
         path_test = '../deploy/test.json'
-        with open(path_test, 'w', encoding='utf-8') as f:  # 清空文件内容
+        with open(path_test, 'w', encoding='utf-8') as _:  # 清空文件内容
             pass
-        for sentence in sentences_map_list:
+        for sentence in sentences_map_list:  # 使用demo里面的test.json进行数据传递
             with open(path_test, 'a+', encoding='utf-8') as f:
                 json.dump(sentence, f, ensure_ascii=False)
             with open(path_test, 'a+', encoding='utf-8') as f:
                 f.write('\n')
         rel_triple_list = test()
+        # 下面是处理知识图谱部分
+        build_graph(rel_triple_list, neo4j_graph)
+        
+        # 下面是为了返回给前端数据
         res = change_list2json(rel_triple_list)
-        tmp = {
-					"nodes": [
-						{"data": {"id": 'a', "name": 'Tom Cruise', "label": 'Person'}},
-						{"data": {"id": 'b', "name": 'Top Gun', "label": 'Movie'}},
-						{"data": {"id": 'c', "name": 'To', "label": 'Movie'}}
-					],
-					"edges": [
-							{"data": {"source": 'a', "target": 'b', "relationship": 'Acted_In'}},
-							{"data": {"source": 'a', "target": 'c', "relationship": 'Hji'}},
-							{"data": {"source": 'b', "target": 'c', "relationship": 'jiba'}}
-							]
-				}
+        
+        # tmp = {
+		# 			"nodes": [
+		# 				{"data": {"id": 'a', "name": 'Tom Cruise', "label": 'Person'}},
+		# 				{"data": {"id": 'b', "name": 'Top Gun', "label": 'Movie'}},
+		# 				{"data": {"id": 'c', "name": 'To', "label": 'Movie'}}
+		# 			],
+		# 			"edges": [
+		# 					{"data": {"source": 'a', "target": 'b', "relationship": 'Acted_In'}},
+		# 					{"data": {"source": 'a', "target": 'c', "relationship": 'Hji'}},
+		# 					{"data": {"source": 'b', "target": 'c', "relationship": 'jiba'}}
+		# 					]
+		# 		}
         return jsonify(res)
+    
+    @app.route('/query_entity', method=['POST'])
+    def query_entity():
+        name_entity = request.values['name_entity']
+        rel_outgoing, rel_incoming = query_entity(name_entity, neo4j_graph)
+        res_query = change_list2json([rel_outgoing, rel_incoming])
+        return jsonify(res_query)
     
     app.run(debug=True)
     

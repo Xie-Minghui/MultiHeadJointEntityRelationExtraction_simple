@@ -82,6 +82,32 @@
                 voc = UrlPOST(txt,show_results);
             });
         });
+		// 下面是处理知识图谱查询结果
+        function UrlPOST_entity(name_entity,myfun){
+            if (name_entity==""){
+                return "error parm";
+            }
+            var httpurl = "/query_entity";
+            $.ajax({
+                    type: "POST",
+                    data: "name_entity="+name_entity,
+                    url: httpurl,
+                    async:false,
+                    success: function(data){
+                        myfun(data);
+                    }
+            });
+        }
+
+        $(document).ready(function(){
+            $("#entity_query").click(function() {
+                var name_entity = $("#name_entity").val();
+                if (name_entity=="")
+                { return; }
+                var voc = "";
+                voc = UrlPOST_entity(name_entity,show_results);
+            });
+        });
     </SCRIPT>
 </head>
 <body class="ai-platform">
@@ -107,6 +133,12 @@
 <!--				<textarea name="result" id="result" spellcheck="false" maxlength="" class="com-txt">-->
 <!--				</textarea>-->
 <div id="cy"></div>
+		<textarea name="name_entity" id="name_entity" spellcheck="false" maxlength="" class="com-entity" onfocus="this.select()">
+			李彦宏
+		</textarea>
+		<div class="result-left-title">查询结果：
+			<input type="button" value=" 提交 " id="entity_query" />
+			</div>
 <!--			<br/>-->
 	</div>
   </div>
