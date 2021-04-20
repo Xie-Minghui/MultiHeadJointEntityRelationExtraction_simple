@@ -8,7 +8,7 @@
 file description:：
 
 """
-from py2neo import Graph, Node, Relationship, NodeMatcher
+from py2neo import Graph, Node, Relationship, NodeMatcher, RelationshipMatcher
 
 def build_graph(rel_triple_list, neo4j_graph):
     matcher = NodeMatcher(neo4j_graph)
@@ -36,12 +36,32 @@ def build_graph(rel_triple_list, neo4j_graph):
 
 # 创建节点
 def entity_query(name_entity, neo4j_graph):
+    name_entity = ''.join(name_entity.split())  # 去除制表符
     res_outgoing = neo4j_graph.run("match (a{name:'%s'})-[rel]->(b) return a.name, b.name, rel" % name_entity).data()
     res_incoming = neo4j_graph.run("match (a)-[rel]->(b{name:'%s'}) return a.name, b.name, rel" % name_entity).data()
     rel_outgoing, rel_incoming = [], []
     for item in res_outgoing:
-        rel_outgoing.append([item['a.name'], item['rel']['type'], item['b.name']])
+        rel_outgoing.append([item['a.name'], item['b.name'], item['rel']['type']])
     for item in res_incoming:
-        rel_incoming.append([item['a.name'], item['rel']['type'], item['b.name']])
+        rel_incoming.append([item['a.name'], item['b.name'], item['rel']['type']])
     
     return rel_outgoing, rel_incoming
+
+# 创建节点
+def rel_query(name_rel, neo4j_graph):
+    name_rel = ''.join(name_rel.split())  # 去除制表符
+    relations = neo4j_graph.run("match (a)-[rel{type:'%s'}]->(b) return a.name, b.name, rel" % name_rel).data()
+    # res_incoming = neo4j_graph.run("match (a)-[rel]->(b{name:'%s'}) return a.name, b.name, rel" % name_entity).data()
+    # rel_outgoing, rel_incoming = [], []
+    # for item in res_outgoing:
+    #     rel_outgoing.append([item['a.name'], item['b.name'], item['rel']['type']])
+    # for item in res_incoming:
+    #     rel_incoming.append([item['a.name'], item['b.name'], item['rel']['type']])
+    # matcher_rel = RelationshipMatcher(neo4j_graph)
+    # relation = list(matcher_rel.match(type=name_rel))
+    rel_list = []
+    for item in relations:
+        rel_list.append([item['a.name'], item['b.name'], item['rel']['type']])
+    rel_list = [rel_list]
+    print(rel_list)
+    return rel_list

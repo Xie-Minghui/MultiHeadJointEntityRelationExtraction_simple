@@ -9,11 +9,11 @@
     <meta name="description" content="">
 	<style type="text/css">
         /* cytoscape graph */
-        #cy {
-            height: 80%;
-            width: 80%;
-            position: absolute;
+        #cy ,#ent, #rela{
+            height: 300px;
+            width: 100%;
         }
+
     </style>
     <link rel="stylesheet" href="../static/css/nlp.css">
 <!--	/deploy_flask/templates/-->
@@ -21,10 +21,10 @@
 	<script src="../static/js/cytoscape.min.js"></script>
     <SCRIPT LANGUAGE="JavaScript">
 
-        function show_results(res) {  //$.get('/query',
+        function show_results(res, label) {  //$.get('/query',
 			// console.log(res);
             cytoscape({
-                container: document.getElementById('cy'),
+                container: document.getElementById(label),
 				zoom:1,
 				minZoom: 0.5,
 	    		maxZoom: 1,
@@ -68,7 +68,7 @@
                     url: httpurl,
                     async:false,
                     success: function(data){
-                        myfun(data);
+                        myfun(data, 'cy');
                     }
             });
         }
@@ -94,7 +94,7 @@
                     url: httpurl,
                     async:false,
                     success: function(data){
-                        myfun(data);
+                        myfun(data, 'ent');
                     }
             });
         }
@@ -102,10 +102,38 @@
         $(document).ready(function(){
             $("#entity_query").click(function() {
                 var name_entity = $("#name_entity").val();
+
                 if (name_entity=="")
                 { return; }
                 var voc = "";
                 voc = UrlPOST_entity(name_entity,show_results);
+            });
+        });
+        // 下面是查询关系
+		function UrlPOST_rel(name_rel,myfun){
+            if (name_rel==""){
+                return "error parm";
+            }
+            var httpurl = "/query_rel";
+            $.ajax({
+                    type: "POST",
+                    data: "name_rel="+name_rel,
+                    url: httpurl,
+                    async:false,
+                    success: function(data){
+                        myfun(data, 'rela');
+                    }
+            });
+        }
+
+        $(document).ready(function(){
+            $("#rel_query").click(function() {
+                var name_rel = $("#name_rel").val();
+
+                if (name_rel=="")
+                { return; }
+                var voc = "";
+                voc = UrlPOST_rel(name_rel,show_results);
             });
         });
     </SCRIPT>
@@ -115,33 +143,50 @@
 	<div class="word-head">实体关系抽取演示版本: {{ version }}</div>
 	<div class="word-form">
 		<div class="com-text-cover">
-			<div class="mid-down-title">
-				<span class="down-title-des">请输入待分析的文本：</span>
-			</div>
+<!--			<div class="mid-down-title">-->
+				<h2 style="margin-bottom:10px;">请输入待分析的文本：</h2>
+<!--			</div>-->
 			<textarea name="txt" id="txt" spellcheck="false" maxlength="" class="com-txt" onfocus="this.select()">
 吃什么：北宋的美食大家苏轼在美食方面的造诣绝对是常人无法比拟的，他留下的美食造福了无数后人，比如：东坡肉
 李小璐反倒忙着在外捞金，让贾乃亮忙着操办新家，贾乃亮的家庭地位是要翻身了
 歌曲介绍由大飞作词，深白色作曲，吕绍淳编曲的歌曲《直线》，属于专辑中深具爆发力的一首歌曲
 			</textarea>
-			<div class="ed-form-down"><span class="ed-down-tips">提示：无需处理格式，直接复制文本内容即可</span></div>
+<!--			<div class="ed-form-down"><span class="ed-down-tips">提示：无需处理格式，直接复制文本内容即可</span></div>-->
 		</div>
 	</div>
-	<div class="result-cover">
-			<div class="result-left-title">抽取结果：
-			<input type="button" value=" 提交 " id="bt_submit" />
-			</div>
-<!--				<textarea name="result" id="result" spellcheck="false" maxlength="" class="com-txt">-->
-<!--				</textarea>-->
-<div id="cy"></div>
-		<textarea name="name_entity" id="name_entity" spellcheck="false" maxlength="" class="com-entity" onfocus="this.select()">
-			李彦宏
-		</textarea>
-		<div class="result-left-title">查询结果：
-			<input type="button" value=" 提交 " id="entity_query" />
-			</div>
-<!--			<br/>-->
+	<div class="result-left-title" style="margin-top:40px">抽取结果：
+		<input type="button" value=" 提交 " id="bt_submit" style="color:#000" />
 	</div>
-  </div>
+	<div class="result-cover">
+		<div id="cy"></div>
+	</div>
 
+	<h2 style="margin-top:20px">请输入待查询的实体：</h2>
+	<div style="margin-top:10px">
+		<textarea style="overflow-y: hidden" name="name_entity" id="name_entity" spellcheck="false" maxlength="" class="com-txt" onfocus="this.select()">李彦宏
+		</textarea>
+	</div>
+	<div class="result-left-title" style="margin-top:10px">查询结果：
+			<input type="button" value=" 提交 " id="entity_query" style="color:#000" />
+			</div>
+	<div class="result-cover">
+
+		<div id="ent"></div>
+	</div>
+
+	<h2 style="margin-top:20px">请输入待查询的关系：</h2>
+	<div style="margin-top:10px">
+		<textarea style="overflow-y: hidden" name="name_rel" id="name_rel" spellcheck="false" maxlength="" class="com-txt" onfocus="this.select()">
+			丈夫
+		</textarea>
+	</div>
+	<div class="result-left-title" style="margin-top:10px">查询结果：
+			<input type="button" value=" 提交 " id="rel_query" style="color:#000" />
+			</div>
+	<div class="result-cover">
+
+		<div id="rela"></div>
+	</div>
+</div>
 </body>
 </html>

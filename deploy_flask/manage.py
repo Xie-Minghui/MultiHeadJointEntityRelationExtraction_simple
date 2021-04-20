@@ -16,7 +16,7 @@ sys.path.append('/home/xieminghui/Projects/MultiHeadJointEntityRelationExtractio
 
 
 from py2neo import Graph
-from utils.neo4j_util import build_graph, entity_query
+from utils.neo4j_util import build_graph, entity_query, rel_query
 from deploy.demo import test
 
 # graph = Graph("http://localhost:7474", username="neo4j", password="root")
@@ -64,7 +64,7 @@ def flask_server():
     neo4j_graph = Graph("http://localhost:7474", username="neo4j", password="root")
     @app.route("/")
     def index():
-        return render_template("index_neo4j.html", version='V 0.1.2')
+        return render_template("index_neo4j.html", version='V 1.0.0')
 
     @app.route("/query", methods=["POST"])
     def query():
@@ -83,7 +83,10 @@ def flask_server():
                 json.dump(sentence, f, ensure_ascii=False)
             with open(path_test, 'a+', encoding='utf-8') as f:
                 f.write('\n')
-        rel_triple_list = test()
+        # rel_triple_list = test()
+        # rel_triple_list = [[['北宋', '苏轼', '朝代']], [], [['大飞', '直线', '作词'], ['深白色', '直线', '作曲']],
+        #           [['贾乃亮', '李小璐', '丈夫'], ['李小璐', '贾乃亮', '妻子']]]
+        rel_triple_list = [[['安建', '小姨多鹤', '导演', '人物', '影片'], ['安建', '北风那个吹', '导演', '人物', '影片']]]
         # 下面是处理知识图谱部分
         build_graph(rel_triple_list, neo4j_graph)
         
@@ -108,7 +111,19 @@ def flask_server():
     def query_entity():
         name_entity = request.values['name_entity']
         rel_outgoing, rel_incoming = entity_query(name_entity, neo4j_graph)
+        # print(rel_outgoing)
         res_query = change_list2json([rel_outgoing, rel_incoming])
+        # print(res_query)
+        return jsonify(res_query)
+
+    @app.route('/query_rel', methods=['POST'])
+    def query_rel():
+        name_rel = request.values['name_rel']
+        print(name_rel)
+        res_query = rel_query(name_rel, neo4j_graph)
+        # print(rel_outgoing)
+        res_query = change_list2json(res_query)
+        # print(res_query)
         return jsonify(res_query)
     
     app.run(debug=True)
