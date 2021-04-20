@@ -83,10 +83,10 @@ def flask_server():
                 json.dump(sentence, f, ensure_ascii=False)
             with open(path_test, 'a+', encoding='utf-8') as f:
                 f.write('\n')
-        # rel_triple_list = test()
+        rel_triple_list = test()
         # rel_triple_list = [[['北宋', '苏轼', '朝代']], [], [['大飞', '直线', '作词'], ['深白色', '直线', '作曲']],
         #           [['贾乃亮', '李小璐', '丈夫'], ['李小璐', '贾乃亮', '妻子']]]
-        rel_triple_list = [[['安建', '小姨多鹤', '导演', '人物', '影片'], ['安建', '北风那个吹', '导演', '人物', '影片']]]
+        # rel_triple_list = [[['安建', '小姨多鹤', '导演', '人物', '影片'], ['安建', '北风那个吹', '导演', '人物', '影片']]]
         # 下面是处理知识图谱部分
         build_graph(rel_triple_list, neo4j_graph)
         
