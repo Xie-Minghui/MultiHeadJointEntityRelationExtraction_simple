@@ -1,0 +1,70 @@
+.nlp-word {
+	width: 1180px;
+	margin: 0 auto;
+	padding-top: 50px
+}
+
+.ai-platform {
+	font-size: 14px;
+	font-family: arial,tahoma,Hiragino Sans GB,Microsoft YaHei,sans-serif;
+	line-height: 1
+}
+
+.word-head {
+	margin-bottom: 30px;
+	text-align: center;
+	font-size: 30px
+}
+
+.word-form {
+	margin-top: 90px;
+	height: 190px;
+	width: 1180px
+}
+
+.com-text-cover {
+	position: relative;
+	height: 100%;
+	background-color: #fff;
+	font-family: Microsoft YaHei
+}
+
+.result-left-title {
+	margin-bottom: 22px;
+	font-size: 16px
+}
+
+.result-cover {
+	overflow: hidden;
+	width: 1180px;
+	margin-top: 24px;
+	padding: 26px 0 0 28px;
+	background-color: hsla(0,0%,100%,.8);
+	font-family: Microsoft YaHei;
+	outline: 1px solid #ccc;
+}
+
+.ai-platform .com-txt {
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+	position: relative;
+	z-index: 2;
+	display: block;
+	width: 100%;
+	height: 100%;
+	padding: 30px 34px 30px 30px;
+	resize: none;
+	background-color: transparent;
+	font-size: 16px;
+	color: black;
+	border: 2px solid #e0e0e0;
+	outline: 0;
+    font-family:Microsoft YaHei;
+}
+
+.ai-platform h1,.ai-platform h2,.ai-platform h3,.ai-platform h4,.ai-platform h5,.ai-platform h6 {
+	font-family: arial,tahoma,Hiragino Sans GB,Microsoft YaHei,sans-serif;
+	margin: 0;
+	font-weight: 500
+}
