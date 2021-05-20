@@ -1,6 +1,11 @@
 
 .idea/
 data/
+models/
+checkpoints/
+record/
+test/
+pretrained/
 deploy/test.json
 
 # Byte-compiled / optimized / DLL files

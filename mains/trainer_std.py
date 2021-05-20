@@ -77,6 +77,7 @@ class Trainer:
             self.id2token_type[i] = token_type
     
     def resume_work(self):
+        # 恢复模型，继续训练
         checkpoint = torch.load(self.config.checkpoint_path_resume)
         self.model.load_state_dict(checkpoint['model_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_dict'])
@@ -114,7 +115,7 @@ class Trainer:
                 ner_loss_final_eval, rel_loss_final_eval, f1_ner_final_eval, precision_score_final_eval \
                     = self.evaluate(epoch)
                 # 模型保存模块
-                if epoch > 16 and precision_score_final_eval > precision_score_final_eval_best:
+                if epoch > 8 and precision_score_final_eval > precision_score_final_eval_best:
                     precision_score_final_eval_best = precision_score_final_eval
                     torch.save({
                         'epoch': epoch + 1, 'model_dict': model.state_dict(), 'precision_best': precision_score_final_eval_best,
@@ -164,8 +165,6 @@ class Trainer:
     
     def update(self, loss):
         self.optimizer.zero_grad()
-        # loss_ner.backward(retain_graph=True)
-        # loss_rel.backward()
         loss.backward()  # retain_graph=True
         self.optimizer.step()
     
@@ -176,6 +175,7 @@ class Trainer:
         self.get_parameters_number()
     
     def get_parameters_number(self):
+        # 计算模型参数量大小
         total_num = sum(p.numel() for p in self.model.parameters())
         trainable_num = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         print(
@@ -341,7 +341,8 @@ class Trainer:
         rel_triple = self.convert2StandardOutput(data_item0, x, token_pred, pred_rel_list)
         print("提取得到的关系三元组:\n {}".format(rel_triple))
     
-    def restore_ner(self, pred_ner, mask_tokens):  # 将预测的结果还原成命名实体识别的结果
+    def restore_ner(self, pred_ner, mask_tokens):  
+        # 将预测的结果还原成命名实体识别的结果
         pred_token_type = []
         for i in range(len(pred_ner)):
             list_tmp = []
@@ -400,6 +401,9 @@ class Trainer:
 
 
 def get_embedding_pre():
+    '''
+    加载预训练词向量
+    '''
     word2id = {}
     with codecs.open('../data/vec.txt', 'r', encoding='utf-8') as f:
         cnt = 0
