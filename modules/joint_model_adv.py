@@ -61,9 +61,7 @@ class JointModel(nn.Module):
         self.pos_weights_rel[0] = 1
         
         self.dropout_embedding_layer = torch.nn.Dropout(config.dropout_embedding)
-        # self.dropout_head_layer = torch.nn.Dropout(config.dropout_head)
-        # self.dropout_ner_layer = torch.nn.Dropout(config.dropout_ner)
-        # self.dropout_lstm_layer = torch.nn.Dropout(config.dropout_lstm)
+
         self.crf_model = CRF(self.num_token_type, batch_first=True)
         
         self.ner_layer = nn.Linear(config.hidden_dim_lstm * 2, config.num_token_type)
@@ -144,9 +142,10 @@ class JointModel(nn.Module):
         if self.config.use_adv and not is_test and not is_eval:  # 进行对抗训练
             raw_perturb = torch.autograd.grad(loss_total, embeddings, retain_graph=True)[0]  # 使用loss对embed求导，得出对结果影响最大的方向
             normalized_per = F.normalize(raw_perturb, dim=1, p=2)
-            normalized_per = F.normalize(normalized_per, dim=2, p=2)
+            normalized_per = F.normalize(normalized_per, dim=2, p=2)  # 对每个维度求L2范数
             perturb = self.config.alpha * math.sqrt(self.config.embedding_dim) * normalized_per.detach()
-            perturb_embeddings = perturb + embeddings
+            perturb_embeddings = perturb + embeddings  # 对原来的词向量进行扰动
+            # 再次使用扰动的词向量进行训练
             loss_ner_adv, loss_rel_adv, _, _ = self.compute_loss(data_item, perturb_embeddings, hidden_init, is_test=is_test)
             loss_ner_adv_final = self.config.gamma*loss_ner + (1-self.config.gamma)*loss_ner_adv
             loss_rel_adv_final = self.config.gamma*loss_rel + (1-self.config.gamma)*loss_rel_adv

@@ -67,7 +67,7 @@
                     data: "text="+txt,
                     url: httpurl,
                     async:false,
-                    success: function(data){
+                    success: function(data){ // 返回的结果会存入success函数的参数
                         myfun(data, 'cy');
                     }
             });

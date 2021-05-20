@@ -1,3 +1,11 @@
+'''
+Author: xmh
+Date: 2021-04-19 22:37:09
+LastEditors: xmh
+LastEditTime: 2021-05-20 20:17:21
+Description: 
+FilePath: \MultiHeadJointEntityRelationExtraction_simple\utils\neo4j_util.py
+'''
 # -*- coding: utf-8 -*-
 
 # @Author  : xmh
@@ -34,7 +42,7 @@ def build_graph(rel_triple_list, neo4j_graph):
                 neo4j_graph.create(rel)
 
 
-# 创建节点
+# 查询实体的关系，包含出向和入向
 def entity_query(name_entity, neo4j_graph):
     name_entity = ''.join(name_entity.split())  # 去除制表符
     res_outgoing = neo4j_graph.run("match (a{name:'%s'})-[rel]->(b) return a.name, b.name, rel" % name_entity).data()
@@ -47,7 +55,7 @@ def entity_query(name_entity, neo4j_graph):
     
     return rel_outgoing, rel_incoming
 
-# 创建节点
+# 查询具有某种关系的所有实体
 def rel_query(name_rel, neo4j_graph):
     name_rel = ''.join(name_rel.split())  # 去除制表符
     relations = neo4j_graph.run("match (a)-[rel{type:'%s'}]->(b) return a.name, b.name, rel" % name_rel).data()
