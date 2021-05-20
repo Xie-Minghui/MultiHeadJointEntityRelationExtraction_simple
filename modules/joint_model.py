@@ -86,22 +86,8 @@ class JointModel(nn.Module):
         else:
             self.pos_weights_rel = torch.ones(self.config.num_relations) * 20
         self.pos_weights_rel[0] = 1
-
-        # self.V_ner = nn.Parameter(torch.rand((config.num_token_type, self.layer_size)))
-        # self.U_ner = nn.Parameter(torch.rand((self.layer_size, 2 * self.hidden_dim)))
-        # self.b_s_ner = nn.Parameter(torch.rand(self.layer_size))
-        # self.b_c_ner = nn.Parameter(torch.rand(config.num_token_type))
-
-        # self.U_head = nn.Parameter(torch.rand((self.layer_size, self.hidden_dim * 2 + self.config.token_type_dim)))
-        # self.W_head = nn.Parameter(torch.rand((self.layer_size, self.hidden_dim * 2 + self.config.token_type_dim)))
-        # self.V_head = nn.Parameter(torch.rand(self.layer_size, len(self.config.relations)))
-        # self.b_s_head = nn.Parameter(torch.rand(self.layer_size))
-        #self.b_c_head = nn.Parameter(torch.rand(config.num_relations))
         
         self.dropout_embedding_layer = torch.nn.Dropout(config.dropout_embedding)
-        # self.dropout_head_layer = torch.nn.Dropout(config.dropout_head)
-        # self.dropout_ner_layer = torch.nn.Dropout(config.dropout_ner)
-        # self.dropout_lstm_layer = torch.nn.Dropout(config.dropout_lstm)
         self.crf_model = CRF(self.num_token_type, batch_first=True)
         
         if self.config.use_attention or self.config.use_jieba:
@@ -116,11 +102,7 @@ class JointModel(nn.Module):
             self.selection_v = nn.Linear(self.hidden_dim * 2 + self.config.token_type_dim, config.rel_emb_size)
         
         self.selection_uv = nn.Linear(2*config.rel_emb_size, config.rel_emb_size)
-        
-        # self.weights_loss = [100 for i in range(config.num_relations)]
-        # self.weights_loss[0] = 1
-        # self.focal_loss = Focal_loss(alpha=self.weights_loss, gamma=4, num_classes=config.num_relations)
-    
+
     def atten_network(self, encoder_out, hidden_final, is_test):
         # [batch, seq_len, hidden_dim_lstm]
         out_squeeze = encoder_out[:, :, :self.config.hidden_dim_lstm] + encoder_out[:, :, self.config.hidden_dim_lstm:]
@@ -130,64 +112,12 @@ class JointModel(nn.Module):
         hidden_squeeze = hidden_squeeze.squeeze(2)
         out_squeeze = torch.tanh(out_squeeze)
         
-        # atten_score = torch.bmm(hidden_squeeze.transpose(-1, -2), out_squeeze.transpose(-1, -2))  # [batch, 1, seq_len]
         atten_score = torch.bmm(out_squeeze, hidden_squeeze.unsqueeze(2)).squeeze(2)  # [batch, 1, seq_len]
-        # if is_test:
-        #     print(out_squeeze)
-        #     print('*'*50)
-        #     print(hidden_squeeze)
-        #     print("*"*50)
-        #     print(atten_score)
-        # atten_score = torch.tanh(atten_score)
+
         atten_weights = F.softmax(atten_score, dim=1)
         
-        # return atten_weights.transpose(-1, -2)  # [batch, seq_len, 1]
         return atten_weights.unsqueeze(2)  # [batch, seq_len]
         
-    # def get_ner_score(self, output_lstm):
-    #
-    #     res = torch.matmul(output_lstm, self.U_ner.transpose(-1, -2)) + self.b_s_ner # [seq_len, batch, self.layer_size]
-    #     # m = nn.Hardtanh()
-    #     res = torch.tanh(res)
-    #     # res = m(res)
-    #     # res = F.leaky_relu(res,  negative_slope=0.01)
-    #     if self.config.use_dropout:
-    #         res = self.dropout_ner_layer(res)
-    #
-    #     ans = torch.matmul(res, self.V_ner.transpose(-1, -2)) + self.b_c_ner  # [seq_len, batch, num_token_type]
-    #
-    #     return ans
-    
-    # def broadcasting(self, left, right):
-    #     left = left.permute(1, 0, 2)
-    #     left = left.unsqueeze(3)
-    #
-    #     right = right.permute(0, 2, 1)
-    #     right = right.unsqueeze(0)
-    #
-    #     B = left + right  # [seq_len, batch, layer_size, seq_len] = [seq_len, batch, layer_size, 1] + [1, batch, layer_size, seq_len]
-    #     B = B.permute(1, 0, 3, 2)
-    #
-    #     return B  # [batch, seq_len, seq_len, layer_size]
-    #
-    # def getHeadSelectionScores(self, rel_input):
-    #
-    #     left = torch.matmul(rel_input, self.U_head.transpose(-1, -2))  # [batch, seq, self.layer_size]
-    #     right = torch.matmul(rel_input, self.W_head.transpose(-1, -2))
-    #
-    #     out_sum = self.broadcasting(left, right)
-    #     out_sum_bias = out_sum + self.b_s_head
-    #     # m = nn.Hardtanh()
-    #     out_sum_bias = torch.tanh(out_sum_bias)  # relu
-    #     # out_sum_bias = F.elu(out_sum_bias)  #使用elu会导致正数不变，但是负数减少，可能导致后面计算的结果正数过多，从而误判为关系
-    #     # out_sum_bias = F.leaky_relu(out_sum_bias,  negative_slope=0.01)  # relu
-    #     if self.config.use_dropout:
-    #         out_sum_bias = self.dropout_head_layer(out_sum_bias)
-    #     res = torch.matmul(out_sum_bias, self.V_head)  # [layer_size, num_relation] [batch,..., num_relation]
-    #     # res的维度应该是 [batch, seq_len, seq_len, num_relation]
-    #     # if self.config.use_dropout:
-    #     #     res = self.dropout_head_layer(res)
-    #     return res
     
     def forward(self, data_item, is_test=False, is_eval=False):
         # 因为不是多跳机制，所以hidden_init不能继承之前的最终隐含态
@@ -256,6 +186,7 @@ class JointModel(nn.Module):
             else:
                 labels = torch.Tensor(pred_ner)
         # [batch_size, seq_len, token_type_dim]
+        # 对命名实体识别的结果进行编码
         label_embeddings = self.token_type_embedding(labels.to(torch.int64))
         if self.config.use_attention:
             rel_input = torch.cat((output_lstm, label_embeddings, atten_weights), 2)
@@ -265,6 +196,7 @@ class JointModel(nn.Module):
             rel_input = torch.cat((output_lstm, label_embeddings, data_item['jieba_cut_vector'].unsqueeze(2)), 2)
         # rel_score_matrix = self.getHeadSelectionScores(rel_input)  # [batch, seq_len, seq_len, num_relation]
         B, L, H = rel_input.size()
+        # tanh求导比较复杂，会占用不少内存
         # u = torch.tanh(self.selection_u(rel_input)).unsqueeze(1).expand(B, L, L, -1)  # (B,L,L,R)
         # v = torch.tanh(self.selection_v(rel_input)).unsqueeze(2).expand(B, L, L, -1)
         # 测试去除tanh的情况，因为论文官方代码没有添加tanh
