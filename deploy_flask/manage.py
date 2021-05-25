@@ -52,9 +52,9 @@ def sent_split(text):
 
 def flask_server():
     
-    app = Flask(__name__)
-    neo4j_graph = Graph("http://localhost:7474", username="neo4j", password="root")
-    @app.route("/")
+    app = Flask(__name__)  # 创建一个Flask应用
+    neo4j_graph = Graph("http://localhost:7474", username="neo4j", password="root")  # 连接数据库
+    @app.route("/")  # 创建路由
     def index():
         return render_template("index_neo4j.html", version='V 1.0.0')
 
@@ -99,7 +99,7 @@ def flask_server():
         res_query = change_list2json(res_query)
         return jsonify(res_query)
     
-    app.run(debug=True)
+    app.run(debug=False)
     
 
 if __name__ == '__main__':
