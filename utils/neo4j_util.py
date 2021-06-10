@@ -1,11 +1,3 @@
-'''
-Author: xmh
-Date: 2021-04-19 22:37:09
-LastEditors: xmh
-LastEditTime: 2021-05-20 20:17:21
-Description: 
-FilePath: \MultiHeadJointEntityRelationExtraction_simple\utils\neo4j_util.py
-'''
 # -*- coding: utf-8 -*-
 
 # @Author  : xmh

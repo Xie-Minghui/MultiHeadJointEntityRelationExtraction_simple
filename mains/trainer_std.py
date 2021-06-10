@@ -183,7 +183,7 @@ class Trainer:
     
     def train(self, epoch):
         print('STARTING TRAIN...')
-        self.num_sample_total = len(train_loader) * self.config.batch_size
+        self.num_sample_total = len(self.train_dataset) * self.config.batch_size
         pbar = tqdm(enumerate(self.train_dataset), total=len(self.train_dataset))
         loss_total, loss_ner_total, loss_rel_total, f1_ner_total, correct_score_total = 0, 0, 0, 0, 0
         for i, data_item in pbar:
