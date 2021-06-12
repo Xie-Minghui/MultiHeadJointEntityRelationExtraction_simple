@@ -25,6 +25,11 @@ For a description of the model and experiment, see paper https://arxiv.org/abs/1
 - tqdm==4.59.0
 - seqeval==0.0.10
 - tensorboard
+- flask == 1.1.2
+
+### Framework
+
+I use flask as the back-end framework, Neo4j as the graph database.
 
 ### Dataset
 
