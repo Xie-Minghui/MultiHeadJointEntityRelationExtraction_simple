@@ -35,7 +35,9 @@ I use flask as the back-end framework, Neo4j as the graph database.
 
 Baidu CCKS2019 Competition
 
-Download link: https://ai.baidu.com/broad/download?dataset=dureader
+The dataset of train_data.json, dev_data.json and predict.json mentioned in the project have been upload in the compressed package data.zip in directory data/
+
+(The dataset is a little different from I used in the project, please use the data/data.zip)Download link: https://ai.baidu.com/broad/download?dataset=dureader
 
 ### Code Description
 * checkpoint
