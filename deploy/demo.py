@@ -29,8 +29,9 @@ def test():
     # PATH_MODEL = '../models/28m-p0.86f0.88n1.50r0.56.pth'  # 对应的是添加了tanh的joint_model
     # PATH_MODEL = '../models/25m-p0.86f0.87n1.64r0.56.pth'  # 对应的是添加了tanh的joint_model_adv(实际没有adv)
     # PATH_MODEL = '../models/41m-p0.88f0.90n1.20r0.45.pth'  # 对应的是gru模型，没有添加tanh，目前存在问题
-    # PATH_MODEL = '../models/43m-p0.89f0.91n0.94r0.43.pth'  # 对应的是albert模型，没有添加tanh
     # PATH_MODEL = '../checkpoints/29m-ckp0.87f0.90n1.34r0.50.pth'  # 对应的是adv模型，没有添加tanh
+    # 使用下面这两个模型，都是albert
+    # PATH_MODEL = '../models/43m-p0.89f0.91n0.94r0.43.pth'  # 对应的是albert模型，没有添加tanh
     PATH_MODEL = '../models/albert33m-p0.77f0.77n2.98r2.17.pth'  # 对应的是albert模型，没有添加tanh
     
     config = Config()
