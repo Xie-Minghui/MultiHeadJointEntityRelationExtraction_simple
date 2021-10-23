@@ -78,7 +78,12 @@ python3 trainer_std.py -encode=albert
 ```
 cd deploy
 python3 demo.py -encode=albert
-(please use albert33m-p0.77f0.77n2.98r2.17.pth)
+(please use albert33m-p0.77f0.77n2.98r2.17.pth or 
+43m-p0.89f0.91n0.94r0.43.pth)
+
+If you want to use the model of gru, please train it yourself,
+because I can't find the model file now.
+In fact, albert performsbetter than gru.
 ```
 
 ### Deployment
