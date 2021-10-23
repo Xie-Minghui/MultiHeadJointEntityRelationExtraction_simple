@@ -71,14 +71,20 @@ The dataset of train_data.json, dev_data.json and predict.json mentioned in the 
 ### Train
 
 ```
-cd Projects/MultiHeadJointEntityRelationExtraction_simple/mains
-python3 trainer.py
+cd mains
+python3 trainer_std.py -encode=albert
+```
+### Demo
+```
+cd deploy
+python3 demo.py -encode=albert
+(please use albert33m-p0.77f0.77n2.98r2.17.pth)
 ```
 
 ### Deployment
 
 ```
-cd Projects/MultiHeadJointEntityRelationExtraction_simple/deploy_flask
+cd deploy_flask
 python3 manage.py
 ```
 
