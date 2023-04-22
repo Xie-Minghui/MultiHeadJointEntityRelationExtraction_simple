@@ -100,3 +100,6 @@ Input the name of the entity and output all the knowledge related to the entity.
 ![image](./doc/img/entity.png)
 Input the name of the relationship and output all the knowledge with the relationship.
 ![image](./doc/img/relation.png)
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Xie-Minghui/MultiHeadJointEntityRelationExtraction_simple&type=Timeline)](https://star-history.com/#Xie-Minghui/MultiHeadJointEntityRelationExtraction_simple&Date)
+
